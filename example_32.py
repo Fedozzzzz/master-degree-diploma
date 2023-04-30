@@ -1,7 +1,9 @@
 import numpy as np
 from PIL import Image
+import matplotlib.pyplot as plt
 
 from gui import RobotGUI
+from island_map_gui import IslandMapGUI
 from island_map import IslandMap
 from robot_builder_controller import RobotBuilderController
 from robot_courier_controller import RobotCourierController
@@ -46,27 +48,6 @@ island_map = [
 width = 32
 height = 32
 
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-# задаем цвета для каждого значения в карте
-cmap = plt.cm.colors.ListedColormap(['blue', 'yellow', 'green'])
-bounds = [0, 0.25, 0.75, 1]
-norm = plt.cm.colors.BoundaryNorm(bounds, cmap.N)
-
-# создаем изображение
-fig, ax = plt.subplots()
-ax.imshow(island_map, cmap=cmap, norm=norm)
-
-# # отображаем точки строительства мостов
-# if bridges is not None:
-#     for x, y in bridges:
-#         ax.scatter(x, y, s=50, marker='o', facecolors='none', edgecolors='yellow')
-
-plt.show()
-
-
 robot_builder_coord = (6, 6)
 # robot_builder_coord = (9, 5)
 robot_courier_coord = (5, 5)
@@ -82,24 +63,25 @@ buildable_coords = get_buildable_coords(island_map, width, height)
 island_map = IslandMap(island_map, delivery_coords)
 
 island_map_copy = island_map.island_map.copy()
-show_map(island_map_copy, destination_coord=destination_coord, start_coord=start_coord, robot_builder=robot_builder_coord, robot_courier=robot_courier_coord)
-
+# show_map(island_map_copy, destination_coord=destination_coord, start_coord=start_coord, robot_builder=robot_builder_coord, robot_courier=robot_courier_coord)
 
 # show_map(island_map.island_map)
-
 
 robot_builder = RobotBuilderController(island_map, (width, height), robot_builder_coord, buildable_coords)
 
 robot_courier = RobotCourierController(island_map, (width, height), robot_courier_coord, delivery_coords)
 
-task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder])
+map_gui = IslandMapGUI(island_map, robots_builder=[robot_builder], robots_courier=[robot_courier])
 
-# task_planner.plan_tasks()
-# task_planner.execute_tasks()
+map_gui.draw()
+
+task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder], gui=map_gui)
 
 task_planner.plan_and_execute_tasks()
+map_gui.draw()
 
-show_map(island_map.island_map, robot_builder=robot_builder.pos, robot_courier=robot_courier.pos)
+# show_map(island_map.island_map, robot_builder=robot_builder.pos, robot_courier=robot_courier.pos)
+
 
 # GUI = RobotGUI(island_map, [robot_builder, robot_courier])
 

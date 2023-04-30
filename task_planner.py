@@ -71,10 +71,11 @@ from utils import DELIVERY_TASK_TYPE, BUILD_TASK_TYPE, find_nearest_point
 
 
 class TaskPlanner:
-    def __init__(self, map_, robots_courier, robots_builder):
+    def __init__(self, map_, robots_courier, robots_builder, gui=None):
         self.map = map_
         self.robots_courier = robots_courier
         self.robots_builder = robots_builder
+        self.gui = gui
         # self.delivery_points = delivery_points
         self.tasks = []
 
@@ -163,6 +164,8 @@ class TaskPlanner:
 
                     self.plan_task(new_task)
                 else:
+                    if self.gui:
+                        self.gui.draw()
                     self.remove_task(task)
 
             is_global_goal_achieved = len(self.map.delivery_coords) == 0

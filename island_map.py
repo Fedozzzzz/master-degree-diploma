@@ -1,5 +1,5 @@
 class IslandMap:
-    def __init__(self, map_array, delivery_coords):
+    def __init__(self, map_array, delivery_coords=None, robots_builder=None, robots_courier=None):
         self.width = len(map_array[0])
         self.height = len(map_array)
         self.map_size = (self.width, self.height)
@@ -22,7 +22,10 @@ class IslandMap:
                     res.append((y, x))
         return res
 
-    def update_map(self, updates):
+    def get_not_transposed_map_matrix(self):
+        return list(map(list, zip(*[row[:] for row in self.island_map])))
+
+    def build_bridge(self, updates):
         for up in updates:
             x, y = up
             self.island_map[x][y] = 0.7

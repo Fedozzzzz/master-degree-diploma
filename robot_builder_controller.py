@@ -47,7 +47,8 @@ class RobotBuilderController(RobotController):
 
             print('Nearest Buildable point:{}'.format(nearest_buildable_point))
             # show_map(self.map.island_map, point=nearest_buildable_point)
-            show_map(self.map.island_map, point=self.pos)
+
+            # show_map(self.map.island_map, point=self.pos)
             is_robot_arrived = self.pos == nearest_buildable_point
             print('is_robot_arrived: {}'.format(is_robot_arrived))
             print('self robot pos: {}'.format(self.pos))
@@ -106,7 +107,7 @@ class RobotBuilderController(RobotController):
 
                 start_searching_buildable_point = False
 
-                self.map.update_map(bridge_path)
+                self.map.build_bridge(bridge_path)
 
                 print('Bridge builded!!')
 
