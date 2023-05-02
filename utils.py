@@ -4,17 +4,22 @@ from math import sqrt
 from PIL import Image
 
 
-def find_shortest_path(start, end, island_map, is_all_walkable=False):
+def find_shortest_path(start, end, island_map, is_all_walkable=False, is_obstacles_reversed=False):
     # создание сетки карты
     grid = Grid(len(island_map[0]), len(island_map[0]))
+
+    # print('Is obstacles reversed: {}'.format(is_obstacles_reversed))
 
     if not is_all_walkable:
         # добавление препятствий на картy
         for x in range(len(island_map[0])):
             for y in range(len(island_map[0])):
-                if island_map[x][y] == 0:
-                    # print('walkable false')
-                    grid.node(x, y).walkable = False
+                if not is_obstacles_reversed:
+                    if island_map[x][y] == 0:
+                        grid.node(x, y).walkable = False
+                else:
+                    if (island_map[x][y] == 1 or island_map[x][y] == 0.7) and island_map[x][y] != 0.5:
+                        grid.node(x, y).walkable = False
 
     # определение начальной и конечной точки
     start_node = grid.node(start[0], start[1])

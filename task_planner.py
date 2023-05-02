@@ -137,24 +137,43 @@ class TaskPlanner:
         for task in self.tasks:
             print('Tasks type: {}'.format(task.type))
             print('Tasks robot: {},'.format(task.robot))
+
+            if task.type == 'delivery':
+                print('Courier Robot departure point: {}'.format(task.robot.departure_point))
+                print('Courier Robot destination point: {}'.format(task.robot.destination_point))
         print(']')
         print('----------------------------------------------------------')
 
     def plan_and_execute_tasks(self):
-        is_global_goal_achieved = len(self.map.delivery_coords) == 0
+        is_no_delivery = len(self.map.delivery_coords) == 0
+        is_task_queue_empty = len(self.tasks) == 0
+
+        free_delivery_coords = self.map.delivery_coords.copy()
+
+        print('is_no_delivery: {}'.format(is_no_delivery))
+        print('is_task_queue_empty: {}'.format(is_task_queue_empty))
+
+        is_global_goal_achieved = is_no_delivery and is_task_queue_empty
         print('Is global goal achieved: {}'.format(is_global_goal_achieved))
 
         while not is_global_goal_achieved:
             print('Is global goal achieved: {}'.format(is_global_goal_achieved))
             free_robots_courier = self.get_free_robots_courier()
+            print('Free robots courier: {}'.format(free_robots_courier))
 
             for rc in free_robots_courier:
-                new_task = Task(DELIVERY_TASK_TYPE, rc)
-                self.plan_task(new_task)
+                print('Free delivery coords: {}'.format(free_delivery_coords))
+                nearest_free_delivery_coords = rc.find_nearest_delivery(free_delivery_coords)
+                print('Nearest free delivery coords: {}'.format(nearest_free_delivery_coords))
+                if nearest_free_delivery_coords:
+                    options = {'delivery_coords': nearest_free_delivery_coords}
+                    new_task = Task(DELIVERY_TASK_TYPE, rc, options=options)
+                    self.plan_task(new_task)
+                    free_delivery_coords.remove(nearest_free_delivery_coords)
 
             for task in self.tasks:
                 is_task_executed = task.try_execute_task()
-                print('Is Task executed: {}'.format(is_task_executed))
+                print('Task with type {} is executed: {}'.format(task.type, is_task_executed))
 
                 if not is_task_executed and task.type == DELIVERY_TASK_TYPE:
                     free_robots_builder = self.get_free_robots_builder()
@@ -168,7 +187,13 @@ class TaskPlanner:
                         self.gui.draw()
                     self.remove_task(task)
 
-            is_global_goal_achieved = len(self.map.delivery_coords) == 0
+            is_no_delivery = len(self.map.delivery_coords) == 0
+            is_task_queue_empty = len(self.tasks) == 0
+
+            print('is_no_delivery: {}'.format(is_no_delivery))
+            print('is_task_queue_empty: {}'.format(is_task_queue_empty))
+
+            is_global_goal_achieved = is_no_delivery and is_task_queue_empty
 
         print('Is global goal achieved: {}'.format(is_global_goal_achieved))
 

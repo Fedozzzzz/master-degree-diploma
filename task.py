@@ -13,11 +13,16 @@ class Task:
     def try_execute_task(self):
         self.robot.is_busy = True
         if self.type == DELIVERY_TASK_TYPE:
+            delivery_coords = self.options['delivery_coords']
             if not self.robot.is_in_delivery:
-                is_delivery_started = self.robot.try_start_delivery()
-                return is_delivery_started
+                is_delivery_started = self.robot.try_start_delivery(delivery_coords)
+                # self.robot.is_busy = is_delivery_started
+                print('(starting) Robot task type: {}, is_busy: {}'.format(self.type, self.robot.is_busy))
+                return False
             else:
                 is_delivery_finished = self.robot.try_finish_delivery()
+                self.robot.is_busy = not is_delivery_finished
+                print('(finishing) Robot task type: {}, is_busy: {}'.format(self.type, self.robot.is_busy))
                 return is_delivery_finished
         elif self.type == BUILD_TASK_TYPE:
             print('Task options: {}'.format(self.options))

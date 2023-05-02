@@ -37,6 +37,7 @@ class IslandMapGUI:
 
         for rc in self.robots_courier:
             x, y = rc.pos
+            print(rc.pos)
             self.ax.scatter(x, y, color=self.terrain_colors['robot_courier'])
 
     def draw_delivery_points(self):

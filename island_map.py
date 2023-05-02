@@ -13,6 +13,15 @@ class IslandMap:
     def is_within_bounds(self, x, y):
         return 0 <= x < self.width and 0 <= y < self.height
 
+    def check_path_over_land(self, path):
+        print('check_path_over_land path: {}', path)
+        for p in path:
+            x, y = p
+            print('check_path_over_land: {}'.format(self.island_map[x][y]))
+            if self.island_map[x][y] == 1.0:
+                return True
+        return False
+
     @staticmethod
     def get_buildable_coords(island_map, width, height):
         res = []
@@ -21,6 +30,14 @@ class IslandMap:
                 if island_map[x][y] == 0.5:
                     res.append((y, x))
         return res
+
+    def get_islands_coords(self):
+        land_coords = []
+        for i in range(len(self.island_map)):
+            for j in range(len(self.island_map[0])):
+                if self.island_map[i][j] == 1:
+                    land_coords.append((i, j))
+        return land_coords
 
     def get_not_transposed_map_matrix(self):
         return list(map(list, zip(*[row[:] for row in self.island_map])))
