@@ -3,6 +3,7 @@ import random
 import numpy as np
 import noise
 
+from constants import GRAPH_BASED_ALG
 from island_map import IslandMap
 from island_map_gui import IslandMapGUI
 from performance_control import PerformanceControl
@@ -53,25 +54,26 @@ for y in range(height):
             buildable_coords.append((x, y))
 
 # np.savetxt('array.txt', island_map, delimiter=',')
-robot_builder_coords = [(23, 41), (33, 18)]
-# robot_builder_coords = [(3, 9)]
+# robot_builder_coords = [(23, 41), (33, 18)]
+robot_builder_coords = [(3, 9)]
 # robot_builder_coords = [(23, 41)]
 
-robot_courier_coords = [(59, 43), (3, 9)]
+# robot_courier_coords = [(59, 43), (3, 9)]
 # robot_courier_coords = [(33, 18)]
-# robot_courier_coords = [(59, 43)]
+robot_courier_coords = [(59, 43)]
 
 destination_coord = [(14, 21), (40, 21)]
 start_coords = [(1, 1), (17, 0)]
 
 # island_map = IslandMap(heightmap, delivery_coords)
 
-delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21)), ((20, 32), (51, 39)), ((30, 58), (3, 33))]
+# delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21)), ((20, 32), (51, 39)), ((30, 58), (3, 33))]
 # delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21)), ((20, 32), (51, 39))]
 # delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21))]
-# delivery_coords = [((17, 0), (40, 21))]
+delivery_coords = [((17, 0), (40, 21))]
 # delivery_coords = [((1, 1), (14, 21))]
 
+# island_map = IslandMap(island_map, delivery_coords, with_buildable_plan=True)
 island_map = IslandMap(island_map, delivery_coords)
 islands_coords = island_map.get_islands_coords()
 
@@ -102,6 +104,7 @@ for r in robots_builder:
 for r in robots_courier:
     r.set_map_gui(map_gui)
 
+# task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui, building_algorithm=GRAPH_BASED_ALG)
 task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui)
 task_planner.plan_and_execute_tasks()
 

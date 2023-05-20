@@ -2,9 +2,11 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 
+from constants import GRAPH_BASED_ALG
 from gui import RobotGUI
 from island_map_gui import IslandMapGUI
 from island_map import IslandMap
+from performance_control import PerformanceControl
 from robot_builder_controller import RobotBuilderController
 from robot_courier_controller import RobotCourierController
 from task_planner import TaskPlanner
@@ -56,29 +58,31 @@ destination_coord = (24, 26)
 start_coord = (20, 6)
 
 delivery_coords = [(start_coord, destination_coord)]
-
 buildable_coords = get_buildable_coords(island_map, width, height)
-#
 
-island_map = IslandMap(island_map, delivery_coords)
+# island_map = IslandMap(island_map, delivery_coords)
+island_map = IslandMap(island_map, delivery_coords, with_buildable_plan=True)
 
-island_map_copy = island_map.island_map.copy()
-# show_map(island_map_copy, destination_coord=destination_coord, start_coord=start_coord, robot_builder=robot_builder_coord, robot_courier=robot_courier_coord)
+performance_control = PerformanceControl()
 
-# show_map(island_map.island_map)
+robot_builder = RobotBuilderController(island_map, (width, height), robot_builder_coord, buildable_coords, performance_control=performance_control)
 
-robot_builder = RobotBuilderController(island_map, (width, height), robot_builder_coord, buildable_coords)
-
-robot_courier = RobotCourierController(island_map, (width, height), robot_courier_coord, delivery_coords)
+robot_courier = RobotCourierController(island_map, (width, height), robot_courier_coord, delivery_coords, performance_control=performance_control)
 
 map_gui = IslandMapGUI(island_map, robots_builder=[robot_builder], robots_courier=[robot_courier])
 
 map_gui.draw()
 
+# task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder], gui=map_gui, building_algorithm=GRAPH_BASED_ALG)
 task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder], gui=map_gui)
 
 task_planner.plan_and_execute_tasks()
 map_gui.draw()
+
+steps_amount = performance_control.get_steps_count()
+
+print("final steps_amount: {}".format(steps_amount))
+
 
 # show_map(island_map.island_map, robot_builder=robot_builder.pos, robot_courier=robot_courier.pos)
 

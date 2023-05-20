@@ -65,20 +65,19 @@
 #                 continue
 #             self.robots[robot_id].build_bridge(task_location)
 #         self.tasks = self.tasks.drop(index=i)
-
 from task import Task
-from utils import DELIVERY_TASK_TYPE, BUILD_TASK_TYPE, find_nearest_point
+from utils import find_nearest_point
+from constants import BUILD_TASK_PRIORITY, DELIVERY_TASK_PRIORITY, DELIVERY_TASK_TYPE, BUILD_TASK_TYPE
 
-DELIVERY_TASK_PRIORITY = 0.5
-BUILD_TASK_PRIORITY = 1.0
 
 class TaskPlanner:
-    def __init__(self, map_, robots_courier, robots_builder, gui=None):
+    def __init__(self, map_, robots_courier, robots_builder, gui=None, building_algorithm=None):
         self.map = map_
         self.robots_courier = robots_courier
         self.robots_builder = robots_builder
         self.gui = gui
         self.tasks = []
+        self.building_algorithm = building_algorithm
 
     def execute_tasks(self):
         for task in self.tasks:
@@ -124,7 +123,6 @@ class TaskPlanner:
     def plan_task(self, task):
         self.tasks.append(task)
         print('Task planned: {}'.format(task.type))
-        # print('Tasks queue: {}'.format(self.tasks))
         # self.print_task_queue()
 
     def remove_task(self, task):
@@ -190,7 +188,7 @@ class TaskPlanner:
                 if not is_task_executed and task.type == DELIVERY_TASK_TYPE:
                     free_robots_builder = self.get_free_robots_builder()
                     nearest_robot_builder = task.robot.find_nearest_robot_builder(free_robots_builder)
-                    task_options = {'nearest_courier_robot': task.robot}
+                    task_options = {'nearest_courier_robot': task.robot, 'algorithm': self.building_algorithm}
                     new_task = Task(BUILD_TASK_TYPE, nearest_robot_builder, options=task_options, priority=BUILD_TASK_PRIORITY)
 
                     self.plan_task(new_task)

@@ -121,7 +121,3 @@ def show_map(island_map, path=None, robot_builder=None, robot_courier=None, poin
 
     image.show()
     # image.save("island_map_2.png", "PNG")
-
-
-DELIVERY_TASK_TYPE = 'delivery'
-BUILD_TASK_TYPE = 'build'
