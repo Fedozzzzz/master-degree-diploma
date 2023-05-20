@@ -5,6 +5,7 @@ import noise
 
 from island_map import IslandMap
 from island_map_gui import IslandMapGUI
+from performance_control import PerformanceControl
 from robot_builder_controller import RobotBuilderController
 from robot_courier_controller import RobotCourierController
 from task_planner import TaskPlanner
@@ -38,18 +39,20 @@ for y in range(height):
 island_map = np.zeros((height, width))
 islands_coords = []
 buildable_coords = []
+threshold = 0.015
 
 # Добавляем острова на карту высот
 for y in range(height):
     for x in range(width):
-        if heightmap[y][x] > 0.005:
+        if heightmap[y][x] > threshold:
             island_map[y][x] = 1
             islands_coords.append((x, y))
-        elif heightmap[y][x] > 0 and heightmap[y][x] < 0.04:
+        elif heightmap[y][x] > 0 and heightmap[y][x] <= threshold:
             island_map[y][x] = 0.5
             islands_coords.append((x, y))
             buildable_coords.append((x, y))
 
+# np.savetxt('array.txt', island_map, delimiter=',')
 robot_builder_coords = [(23, 41), (33, 18)]
 # robot_builder_coords = [(3, 9)]
 # robot_builder_coords = [(23, 41)]
@@ -72,17 +75,20 @@ delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21)), ((20, 32), (51, 39))
 island_map = IslandMap(island_map, delivery_coords)
 islands_coords = island_map.get_islands_coords()
 
-random_two = random.sample(islands_coords, 2)
-
-print(random_two)
+# random_two = random.sample(islands_coords, 2)
+#
+# print(random_two)
 
 max_bridge_length = 18
 
+performance_control = PerformanceControl()
+#
 robots_builder = [RobotBuilderController(island_map, (width, height), start_pos=rbc, buildable_coords=buildable_coords,
-                                         max_bridge_length=max_bridge_length)
+                                         max_bridge_length=max_bridge_length, performance_control=performance_control)
                   for rbc in robot_builder_coords]
 
-robots_courier = [RobotCourierController(island_map, (width, height), start_pos=rcc, delivery_coords=delivery_coords)
+robots_courier = [RobotCourierController(island_map, (width, height), start_pos=rcc, delivery_coords=delivery_coords,
+                                         performance_control=performance_control)
                   for rcc in robot_courier_coords]
 
 map_gui = IslandMapGUI(island_map, robots_builder=robots_builder, robots_courier=robots_courier)
@@ -97,7 +103,11 @@ for r in robots_courier:
     r.set_map_gui(map_gui)
 
 task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui)
-#
-# task_planner.plan_and_execute_tasks()
+task_planner.plan_and_execute_tasks()
+
+steps_amount = performance_control.get_steps_count()
+
+print("final steps_amount: {}".format(steps_amount))
+
 map_gui.draw()
 

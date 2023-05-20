@@ -2,13 +2,14 @@ from utils import find_shortest_path
 
 
 class RobotController:
-    def __init__(self, initial_map, map_size, start_pos, gui=None):
+    def __init__(self, initial_map, map_size, start_pos, gui=None, performance_control=None):
         # self.map = list(map(list, zip(*initial_map)))  # необходимо транспорировать матрицу
         self.map = initial_map  # необходимо транспорировать матрицу
         self.map_size = map_size  # размер карты (x,y)
         self.pos = start_pos  # текущая позиция робота на карте (x,y)
         self.is_busy = False
         self.gui = gui
+        self.performance_control = performance_control
 
     def set_map_gui(self, gui):
         self.gui = gui
@@ -46,8 +47,12 @@ class RobotController:
                 self.move_up(y - self.pos[1])
             elif y < self.pos[1]:
                 self.move_down(self.pos[1] - y)
-        # if self.gui:
-        #     self.gui.draw()
+
+            if self.performance_control:
+                self.performance_control.add_steps(1)
+
+        if self.gui:
+            self.gui.draw()
 
     def find_path(self, point):
         return find_shortest_path(self.pos, point, self.map.island_map)

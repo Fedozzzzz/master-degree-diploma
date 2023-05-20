@@ -55,6 +55,8 @@ class IslandMapGUI:
     def draw_map(self):
         cmap = plt.cm.colors.ListedColormap(['blue', 'yellow', 'brown', 'green'])
         bounds = [0, 0.4, 0.6, 0.8, 1]
+        # cmap = plt.cm.colors.ListedColormap(['blue', 'yellow', 'green'])
+        # bounds = [0, 0.4, 0.6, 1]
         norm = plt.cm.colors.BoundaryNorm(bounds, cmap.N)
         self.ax.imshow(self.island_map.get_not_transposed_map_matrix(), cmap=cmap, norm=norm)
         self.fig.canvas.draw()

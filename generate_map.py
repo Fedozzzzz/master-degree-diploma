@@ -145,5 +145,5 @@ def plot_map(island_map):
     plt.show()
 
 # Генерация и отображение карты
-island_map = generate_island_map(64, 8)
+island_map = generate_island_map(128, 8)
 plot_map(island_map)

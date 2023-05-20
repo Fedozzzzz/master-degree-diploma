@@ -5,10 +5,12 @@ from utils import find_nearest_point, \
     get_departure_points, \
     find_destination_point
 
+DELIVERY_OPERATION_COST = 4
+
 
 class RobotCourierController(RobotController):
-    def __init__(self, map_, map_size, start_pos, delivery_coords, gui=None):
-        super().__init__(map_, map_size, start_pos, gui)
+    def __init__(self, map_, map_size, start_pos, delivery_coords, gui=None, performance_control=None):
+        super().__init__(map_, map_size, start_pos, gui, performance_control)
         self.delivery_coords = delivery_coords
 
         self.is_in_delivery = False
@@ -86,7 +88,8 @@ class RobotCourierController(RobotController):
         print('[find_nearest_delivery]: nearest_departure_point: {}'.format(nearest_departure_point))
         destination_point = find_destination_point(nearest_departure_point, free_delivery_coords)
 
-        print('[find_nearest_delivery]: (nearest_departure_point, destination_point): {}'.format((nearest_departure_point, destination_point)))
+        print('[find_nearest_delivery]: (nearest_departure_point, destination_point): {}'.format(
+            (nearest_departure_point, destination_point)))
         return (nearest_departure_point, destination_point) if nearest_departure_point and destination_point else None
 
     def start_delivery(self):
@@ -96,6 +99,9 @@ class RobotCourierController(RobotController):
             self.is_in_delivery = True
             print('Picked up delivery at pos: {}'.format(self.pos))
 
+            if self.performance_control:
+                self.performance_control.add_steps(DELIVERY_OPERATION_COST)
+
     def finish_delivery(self):
         can_finish_delivery = self.pos == self.destination_point
         print('Can Finish delivery : {}'.format(can_finish_delivery))
@@ -103,6 +109,9 @@ class RobotCourierController(RobotController):
         if can_finish_delivery:
             self.is_in_delivery = False
             print('Finished delivery at pos: {}'.format(self.pos))
+
+            if self.performance_control:
+                self.performance_control.add_steps(DELIVERY_OPERATION_COST)
 
             curr_delivery_point = (self.departure_point, self.destination_point)
             print('curr_delivery_point: {}'.format(curr_delivery_point))

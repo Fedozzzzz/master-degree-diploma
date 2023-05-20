@@ -52,13 +52,16 @@ class Task:
 
             if not is_exists_path_to_courier_robot and is_exists_path_to_departure_point is not None:
                 print('Build bridge to point (nearest_courier_robot_coords):{}'.format(nearest_courier_robot_coords))
-                self.robot.build_bridge_to_point(nearest_courier_robot_coords)
+                # self.robot.build_bridge_to_point(nearest_courier_robot_coords)
+                self.robot.build_bridge_to_point_modified(nearest_courier_robot_coords)
             elif not is_exists_path_to_departure_point and is_exists_path_to_departure_point is not None:
                 print('Build bridge to point (nearest_courier_robot_departure_point):{}'.format(nearest_courier_robot_departure_point))
-                self.robot.build_bridge_to_point(nearest_courier_robot_departure_point)
+                # self.robot.build_bridge_to_point(nearest_courier_robot_departure_point)
+                self.robot.build_bridge_to_point_modified(nearest_courier_robot_departure_point)
             elif not is_exists_path_to_destination_point and is_exists_path_to_destination_point is not None:
                 print('Build bridge to point (is_exists_path_to_delivery_point):{}'.format(nearest_courier_robot_destination_point))
-                self.robot.build_bridge_to_point(nearest_courier_robot_destination_point)
+                # self.robot.build_bridge_to_point(nearest_courier_robot_destination_point)
+                self.robot.build_bridge_to_point_modified(nearest_courier_robot_destination_point)
 
         self.robot.is_busy = False
         return True

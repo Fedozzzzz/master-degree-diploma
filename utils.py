@@ -30,7 +30,7 @@ def find_shortest_path(start, end, island_map, is_all_walkable=False, is_obstacl
     # поиск кратчайшего пути
     finder = AStarFinder()
     path, _ = finder.find_path(start_node, end_node, grid)
-
+    # print("path: {}".format(path))
     return path
 
 

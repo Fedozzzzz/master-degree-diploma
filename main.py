@@ -4,14 +4,26 @@ import numpy as np
 import noise
 
 # Размеры карты
-width = 64
-height = 64
+width = 128
+height = 128
 
-# Масштаб и параметры шума
-scale = 100.0
-octaves = 5
-persistence = 3.5
-lacunarity = 1.8
+# # Масштаб и параметры шума
+# scale = 100.0
+# octaves = 5
+# persistence = 4.0
+# lacunarity = 1.8
+
+# # Масштаб и параметры шума
+# scale = 10.0  # Масштаб карты
+# octaves = 6  # Количество октав
+# persistence = 0.1  # Влияние каждой октавы
+# lacunarity = 3.0   # Увеличение частоты шума с каждой октавой
+
+scale = 20.0  # Масштаб карты
+octaves = 8  # Количество октав
+persistence = 0.6  # Влияние каждой октавы
+lacunarity = 2.0  # Увеличение частоты шума с каждой октавой
+seed = 42  # Семя для генерации случайных чисел
 
 # Масштаб и параметры шума
 # scale = 100.0
@@ -27,7 +39,6 @@ for y in range(height):
     for x in range(width):
         value = noise.pnoise2(x/scale, y/scale, octaves=octaves, persistence=persistence, lacunarity=lacunarity, repeatx=1024, repeaty=1024, base=0)
         heightmap[y][x] = value
-
 
 
 # import matplotlib.pyplot as plt
@@ -55,10 +66,10 @@ buildable_coords = []
 # Добавляем острова на карту высот
 for y in range(height):
     for x in range(width):
-        if heightmap[y][x] > 0.005:
+        if heightmap[y][x] > 0.00005:
             island_map[y][x] = 1
             islands_coords.append((x, y))
-        elif heightmap[y][x] > 0 and heightmap[y][x] < 0.005:
+        elif heightmap[y][x] > 0 and heightmap[y][x] < 0.000005:
             island_map[y][x] = 0.5
             islands_coords.append((x, y))
             buildable_coords.append((x, y))

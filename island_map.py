@@ -18,7 +18,7 @@ class IslandMap:
         for p in path:
             x, y = p
             print('check_path_over_land: {}'.format(self.island_map[x][y]))
-            if self.island_map[x][y] == 1.0:
+            if self.island_map[x][y] == 1.0 or self.island_map[x][y] == 0.7:
                 return True
         return False
 

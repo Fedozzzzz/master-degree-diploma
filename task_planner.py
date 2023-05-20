@@ -69,6 +69,8 @@
 from task import Task
 from utils import DELIVERY_TASK_TYPE, BUILD_TASK_TYPE, find_nearest_point
 
+DELIVERY_TASK_PRIORITY = 0.5
+BUILD_TASK_PRIORITY = 1.0
 
 class TaskPlanner:
     def __init__(self, map_, robots_courier, robots_builder, gui=None):
@@ -76,7 +78,6 @@ class TaskPlanner:
         self.robots_courier = robots_courier
         self.robots_builder = robots_builder
         self.gui = gui
-        # self.delivery_points = delivery_points
         self.tasks = []
 
     def execute_tasks(self):
@@ -124,12 +125,12 @@ class TaskPlanner:
         self.tasks.append(task)
         print('Task planned: {}'.format(task.type))
         # print('Tasks queue: {}'.format(self.tasks))
-        self.print_task_queue()
+        # self.print_task_queue()
 
     def remove_task(self, task):
         self.tasks.remove(task)
         print('Task removed: {}'.format(task.type))
-        self.print_task_queue()
+        # self.print_task_queue()
 
     def print_task_queue(self):
         print('----------------------------------------------------------')
@@ -137,12 +138,16 @@ class TaskPlanner:
         for task in self.tasks:
             print('Tasks type: {}'.format(task.type))
             print('Tasks robot: {},'.format(task.robot))
+            print('Tasks priority: {},'.format(task.priority))
 
             if task.type == 'delivery':
                 print('Courier Robot departure point: {}'.format(task.robot.departure_point))
                 print('Courier Robot destination point: {}'.format(task.robot.destination_point))
         print(']')
         print('----------------------------------------------------------')
+
+    def sort_tasks_by_priority(self):
+        self.tasks.sort(key=lambda task: task.priority, reverse=True)
 
     def plan_and_execute_tasks(self):
         is_no_delivery = len(self.map.delivery_coords) == 0
@@ -167,25 +172,36 @@ class TaskPlanner:
                 print('Nearest free delivery coords: {}'.format(nearest_free_delivery_coords))
                 if nearest_free_delivery_coords:
                     options = {'delivery_coords': nearest_free_delivery_coords}
-                    new_task = Task(DELIVERY_TASK_TYPE, rc, options=options)
+                    new_task = Task(DELIVERY_TASK_TYPE, rc, options=options, priority=DELIVERY_TASK_PRIORITY)
                     self.plan_task(new_task)
                     free_delivery_coords.remove(nearest_free_delivery_coords)
 
-            for task in self.tasks:
+            self.print_task_queue()
+
+            tasks_current = self.tasks.copy()
+
+            for task in tasks_current:
+                print('-------------------------------------------------------')
+                print("Task type to execute: {}".format(task.type))
                 is_task_executed = task.try_execute_task()
                 print('Task with type {} is executed: {}'.format(task.type, is_task_executed))
+                print('-------------------------------------------------------')
 
                 if not is_task_executed and task.type == DELIVERY_TASK_TYPE:
                     free_robots_builder = self.get_free_robots_builder()
                     nearest_robot_builder = task.robot.find_nearest_robot_builder(free_robots_builder)
                     task_options = {'nearest_courier_robot': task.robot}
-                    new_task = Task(BUILD_TASK_TYPE, nearest_robot_builder, options=task_options)
+                    new_task = Task(BUILD_TASK_TYPE, nearest_robot_builder, options=task_options, priority=BUILD_TASK_PRIORITY)
 
                     self.plan_task(new_task)
                 else:
                     if self.gui:
                         self.gui.draw()
                     self.remove_task(task)
+
+            """ experimental """
+            self.sort_tasks_by_priority()
+            """ experimental """
 
             is_no_delivery = len(self.map.delivery_coords) == 0
             is_task_queue_empty = len(self.tasks) == 0
@@ -196,9 +212,3 @@ class TaskPlanner:
             is_global_goal_achieved = is_no_delivery and is_task_queue_empty
 
         print('Is global goal achieved: {}'.format(is_global_goal_achieved))
-
-
-
-
-
-
