@@ -2,7 +2,7 @@ from utils import find_shortest_path
 
 
 class RobotController:
-    def __init__(self, initial_map, map_size, start_pos, gui=None, performance_control=None):
+    def __init__(self, initial_map, map_size, start_pos, gui=None, performance_control=None, robot_type=None):
         # self.map = list(map(list, zip(*initial_map)))  # необходимо транспорировать матрицу
         self.map = initial_map  # необходимо транспорировать матрицу
         self.map_size = map_size  # размер карты (x,y)
@@ -10,6 +10,7 @@ class RobotController:
         self.is_busy = False
         self.gui = gui
         self.performance_control = performance_control
+        self.robot_type = robot_type
 
     def set_map_gui(self, gui):
         self.gui = gui
@@ -50,6 +51,7 @@ class RobotController:
 
             if self.performance_control:
                 self.performance_control.add_steps(1)
+                self.performance_control.increase_operation_cost_sum(1, self.robot_type)
 
         if self.gui:
             self.gui.draw()

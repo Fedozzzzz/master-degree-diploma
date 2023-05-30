@@ -1,16 +1,16 @@
 import math
 
+from constants import DELIVERY_OPERATION_COST, COURIER_ROBOT
 from robot_controller import RobotController
 from utils import find_nearest_point, \
     get_departure_points, \
     find_destination_point
 
-DELIVERY_OPERATION_COST = 4
 
 
 class RobotCourierController(RobotController):
     def __init__(self, map_, map_size, start_pos, delivery_coords, gui=None, performance_control=None):
-        super().__init__(map_, map_size, start_pos, gui, performance_control)
+        super().__init__(map_, map_size, start_pos, gui, performance_control, robot_type=COURIER_ROBOT)
         self.delivery_coords = delivery_coords
 
         self.is_in_delivery = False
@@ -101,6 +101,7 @@ class RobotCourierController(RobotController):
 
             if self.performance_control:
                 self.performance_control.add_steps(DELIVERY_OPERATION_COST)
+                self.performance_control.increase_operation_cost_sum(DELIVERY_OPERATION_COST, self.robot_type)
 
     def finish_delivery(self):
         can_finish_delivery = self.pos == self.destination_point
@@ -112,6 +113,7 @@ class RobotCourierController(RobotController):
 
             if self.performance_control:
                 self.performance_control.add_steps(DELIVERY_OPERATION_COST)
+                self.performance_control.increase_operation_cost_sum(DELIVERY_OPERATION_COST, self.robot_type)
 
             curr_delivery_point = (self.departure_point, self.destination_point)
             print('curr_delivery_point: {}'.format(curr_delivery_point))

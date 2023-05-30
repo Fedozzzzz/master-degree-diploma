@@ -70,12 +70,21 @@ start_coords = [(1, 1), (17, 0)]
 # delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21)), ((20, 32), (51, 39)), ((30, 58), (3, 33))]
 # delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21)), ((20, 32), (51, 39))]
 # delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21))]
-delivery_coords = [((17, 0), (40, 21))]
+# delivery_coords = [((17, 0), (40, 21))]
 # delivery_coords = [((1, 1), (14, 21))]
 
-# island_map = IslandMap(island_map, delivery_coords, with_buildable_plan=True)
-island_map = IslandMap(island_map, delivery_coords)
-islands_coords = island_map.get_islands_coords()
+# delivery_coords = [((44, 29), (46, 25)), ((34, 2), (42, 21)), ((37, 24), (12, 46)), ((0, 18), (61, 19)), ((62, 45), (11, 1)), ((30, 42), (26, 41)), ((20, 30), (9, 28))]
+# robots_builder_coords = [(37, 59), (31, 25)]
+# robots_courier_coords= [(40, 31), (16, 22)]
+
+delivery_coords =  [((19, 17), (12, 15)), ((25, 47), (51, 0)), ((16, 50), (23, 42)), ((26, 0), (41, 34))]
+robot_builder_coords = [(33, 27), (63, 12)]
+robot_courier_coords = [(15, 48), (29, 40)]
+
+
+island_map = IslandMap(island_map, delivery_coords, with_buildable_plan=True)
+# island_map = IslandMap(island_map, delivery_coords)
+# islands_coords = island_map.get_islands_coords()
 
 # random_two = random.sample(islands_coords, 2)
 #
@@ -84,7 +93,7 @@ islands_coords = island_map.get_islands_coords()
 max_bridge_length = 18
 
 performance_control = PerformanceControl()
-#
+
 robots_builder = [RobotBuilderController(island_map, (width, height), start_pos=rbc, buildable_coords=buildable_coords,
                                          max_bridge_length=max_bridge_length, performance_control=performance_control)
                   for rbc in robot_builder_coords]
@@ -93,6 +102,8 @@ robots_courier = [RobotCourierController(island_map, (width, height), start_pos=
                                          performance_control=performance_control)
                   for rcc in robot_courier_coords]
 
+print('robots_builder: {}'.format(robots_builder))
+print('robots_courier: {}'.format(robots_courier))
 map_gui = IslandMapGUI(island_map, robots_builder=robots_builder, robots_courier=robots_courier)
 # map_gui = IslandMapGUI(island_map)
 
@@ -104,8 +115,8 @@ for r in robots_builder:
 for r in robots_courier:
     r.set_map_gui(map_gui)
 
-# task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui, building_algorithm=GRAPH_BASED_ALG)
-task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui)
+task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui, building_algorithm=GRAPH_BASED_ALG)
+# task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui)
 task_planner.plan_and_execute_tasks()
 
 steps_amount = performance_control.get_steps_count()
@@ -113,4 +124,3 @@ steps_amount = performance_control.get_steps_count()
 print("final steps_amount: {}".format(steps_amount))
 
 map_gui.draw()
-

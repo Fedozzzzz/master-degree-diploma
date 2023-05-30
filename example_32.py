@@ -73,8 +73,8 @@ map_gui = IslandMapGUI(island_map, robots_builder=[robot_builder], robots_courie
 
 map_gui.draw()
 
-# task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder], gui=map_gui, building_algorithm=GRAPH_BASED_ALG)
-task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder], gui=map_gui)
+task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder], gui=map_gui, building_algorithm=GRAPH_BASED_ALG)
+# task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder], gui=map_gui)
 
 task_planner.plan_and_execute_tasks()
 map_gui.draw()

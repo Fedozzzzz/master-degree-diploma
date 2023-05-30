@@ -1,8 +1,10 @@
 import networkx as nx
 from matplotlib import pyplot as plt
+import json
 
 from constants import MAX_BRIDGE_LENGTH
 from utils import find_shortest_path
+
 
 
 class IslandMap:
@@ -28,6 +30,9 @@ class IslandMap:
 
     def is_within_bounds(self, x, y):
         return 0 <= x < self.width and 0 <= y < self.height
+
+    def set_delivery_coords(self, delivery_coords):
+        self.delivery_coords = delivery_coords
 
     def check_path_over_land(self, path):
         print('check_path_over_land path: {}', path)
@@ -122,6 +127,36 @@ class IslandMap:
 
     @staticmethod
     def create_buildable_plan(islands_coords, island_map, max_bridge_length):
+        try:
+            # Открываем файл JSON
+            with open("buildable_plan_graph.json", "r") as file:
+                data = json.load(file)        # Создаем пустой граф
+            graph = nx.Graph()
+
+            # Добавление узлов
+            for node_data in data['nodes']:
+                node_id = tuple(map(tuple, node_data['id']))
+                graph.add_node(node_id)
+
+            # Добавление ребер
+            for link_data in data['links']:
+                # print('link_data: {}'.format(link_data))
+                source = tuple(map(tuple, link_data['source']))
+                target = tuple(map(tuple, link_data['target']))
+                weight = link_data["weight"]
+                bridge = link_data["bridge"]
+                graph.add_edge(source, target, weight=weight, bridge=bridge)
+
+            # Вывод информации о графе
+            print("Узлы:", graph.nodes())
+            print("Ребра:", graph.edges())
+
+            # print("buildable_plan: {}".format(buildable_plan_graph))
+            print("Файл успешно открыт и обработан.")
+            return graph
+        except:
+            print("Не удалось открыть файл с графом")
+
         # Создаем пустой граф
         graph = nx.MultiGraph()
         labeldict = {}
@@ -157,6 +192,8 @@ class IslandMap:
                         if bridge_length > max_bridge_length or bridge_length == 0:
                             continue
 
+                        print('source: {}'.format(island1_coordinates))
+                        print('target: {}'.format(island2_coordinates))
                         print('bridge_length: {}'.format(bridge_length))
                         bridge_options = {'start': i1cb, 'end': i2cb, 'expected_length': bridge_length}
                         graph.add_edge(island1_coordinates, island2_coordinates, weight=bridge_length,
@@ -189,5 +226,12 @@ class IslandMap:
         # Отображение графика
         plt.axis('off')
         plt.show()
+
+        # Преобразование мультиграфа в словарь
+        graph_dict = nx.node_link_data(T)
+
+        # Сохранение словаря в JSON-файл
+        with open("buildable_plan_graph.json", "w") as f:
+            json.dump(graph_dict, f)
 
         return T

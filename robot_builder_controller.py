@@ -1,16 +1,16 @@
-from constants import MAX_BRIDGE_LENGTH
+from constants import MAX_BRIDGE_LENGTH, BRIDGE_BUILDING_COST, BUILDER_ROBOT
 from robot_controller import RobotController
 from utils import find_nearest_point, find_shortest_path, show_map
 
 
-
 class RobotBuilderController(RobotController):
-    def __init__(self, island_map, map_size, start_pos, buildable_coords, max_bridge_length=None, gui=None, performance_control=None):
-        super().__init__(island_map, map_size, start_pos, gui, performance_control)
+    def __init__(self, island_map, map_size, start_pos, buildable_coords, max_bridge_length=None, gui=None,
+                 performance_control=None):
+        super().__init__(island_map, map_size, start_pos, gui, performance_control, robot_type=BUILDER_ROBOT)
         self.buildable_coords = buildable_coords
         self.max_bridge_length = max_bridge_length or MAX_BRIDGE_LENGTH
-        self.buildable_coords_reachable, self.buildable_coords_unreachable = \
-            self.divide_buildable_coords_by_reachability(buildable_coords)
+        self.buildable_coords_reachable = []
+        self.buildable_coords_unreachable = []
         self.planned_bridges = []
 
     def set_buildable_coords_reachable(self, buildable_coords):
@@ -71,7 +71,8 @@ class RobotBuilderController(RobotController):
                 building_end = temp
 
             if self.can_build_bridge():
-                bridge_path = find_shortest_path(self.pos, building_end, self.map.island_map, is_obstacles_reversed=True)
+                bridge_path = find_shortest_path(self.pos, building_end, self.map.island_map,
+                                                 is_obstacles_reversed=True)
                 print('[build_bridge_graph_based]: Bridge length: {}'.format(len(bridge_path)))
 
                 if len(bridge_path) > self.max_bridge_length or len(bridge_path) == 0:
@@ -92,53 +93,55 @@ class RobotBuilderController(RobotController):
         if is_exists_path_to_point:
             return
         else:
+            self.buildable_coords_reachable, self.buildable_coords_unreachable = \
+                self.divide_buildable_coords_by_reachability(self.buildable_coords)
             remaining_buildable_coords = self.buildable_coords_reachable.copy()
-            print('[build_bridge_to_point_modified]: remaining_buildable_coords reachable: {}'.format(remaining_buildable_coords))
+            # print('[build_bridge_to_point_modified]: remaining_buildable_coords reachable: {}'.format(remaining_buildable_coords))
             while not is_exists_path_to_point:
                 can_build_bridge = self.can_build_bridge()
-                print('[build_bridge_to_point_modified]: Can build bridge at point: {} is {}'.format(self.pos, can_build_bridge))
-                print('[build_bridge_to_point_modified]: remaining_buildable_coords reachable: {}'.format(remaining_buildable_coords))
+                # print('[build_bridge_to_point_modified]: Can build bridge at point: {} is {}'.format(self.pos, can_build_bridge))
+                # print('[build_bridge_to_point_modified]: remaining_buildable_coords reachable: {}'.format(remaining_buildable_coords))
 
                 if not can_build_bridge:
                     self.go_nearest_buildable_point_modified(remaining_buildable_coords, point)
 
                 is_bridge_built = self.build_bridge_modified(point)
-                print('[build_bridge_to_point_modified]: Was bridge built: {}'.format(is_bridge_built))
+                # print('[build_bridge_to_point_modified]: Was bridge built: {}'.format(is_bridge_built))
 
                 if not is_bridge_built:
                     remaining_buildable_coords.remove(self.pos)
                     self.go_nearest_buildable_point_modified(remaining_buildable_coords, point)
                 else:
-                    self.buildable_coords_reachable, self.buildable_coords_unreachable =\
+                    self.buildable_coords_reachable, self.buildable_coords_unreachable = \
                         self.divide_buildable_coords_by_reachability(self.buildable_coords)
 
                     remaining_buildable_coords = self.buildable_coords_reachable.copy()
                     is_exists_path_to_point = len(self.find_path(point)) > 0
 
     def go_nearest_buildable_point_modified(self, remaining_buildable_coords, point_goal):
-        print('[go_nearest_buildable_point_modified]: Buildable coords array:{}'.format(remaining_buildable_coords))
-        print('[go_nearest_buildable_point_modified]: Goal point coords:{}'.format(point_goal))
+        # print('[go_nearest_buildable_point_modified]: Buildable coords array:{}'.format(remaining_buildable_coords))
+        # print('[go_nearest_buildable_point_modified]: Goal point coords:{}'.format(point_goal))
         path = []
         buildable_coords_current = remaining_buildable_coords.copy()
 
-        print('----------------------------------------------------------')
+        # print('----------------------------------------------------------')
         while len(path) == 0:
             nearest_buildable_point = find_nearest_point(point_goal, buildable_coords_current)
 
-            print('[go_nearest_buildable_point_modified]: Nearest Buildable point:{}'.format(nearest_buildable_point))
+            # print('[go_nearest_buildable_point_modified]: Nearest Buildable point:{}'.format(nearest_buildable_point))
             is_robot_arrived = self.pos == nearest_buildable_point
-            print('[go_nearest_buildable_point_modified]: is_robot_arrived: {}'.format(is_robot_arrived))
-            print('[go_nearest_buildable_point_modified]: self robot pos: {}'.format(self.pos))
+            # print('[go_nearest_buildable_point_modified]: is_robot_arrived: {}'.format(is_robot_arrived))
+            # print('[go_nearest_buildable_point_modified]: self robot pos: {}'.format(self.pos))
 
             if nearest_buildable_point is None or is_robot_arrived:
                 break
 
             if nearest_buildable_point:
                 path = self.find_path(nearest_buildable_point)
-                print('[go_nearest_buildable_point_modified]: Path to the Nearest Buildable point:{}'.format(path))
+                # print('[go_nearest_buildable_point_modified]: Path to the Nearest Buildable point:{}'.format(path))
 
                 if path:
-                    print('[go_nearest_buildable_point_modified]: Path to the Nearest Buildable point:{}'.format(path))
+                    # print('[go_nearest_buildable_point_modified]: Path to the Nearest Buildable point:{}'.format(path))
 
                     self.follow_path(path)
                     break
@@ -146,40 +149,40 @@ class RobotBuilderController(RobotController):
                     buildable_coords_current.remove(nearest_buildable_point)
 
     def build_bridge_modified(self, point_goal):
-        print('[build_bridge_modified]: trying to build bridge')
-        print('[build_bridge_modified]: Goal point coords:{}'.format(point_goal))
+        # print('[build_bridge_modified]: trying to build bridge')
+        # print('[build_bridge_modified]: Goal point coords:{}'.format(point_goal))
         x, y = self.pos
         can_build_bridge = self.map.island_map[x][y] == 0.5
         print('----------------------------------------------------------')
-        print('[build_bridge_modified]: Robot self position: {}'.format(self.pos))
-        print('[build_bridge_modified]: Map state at this position: {}'.format(self.map.island_map[x][y]))
+        # print('[build_bridge_modified]: Robot self position: {}'.format(self.pos))
+        # print('[build_bridge_modified]: Map state at this position: {}'.format(self.map.island_map[x][y]))
 
         if can_build_bridge:
-            print('[build_bridge_modified]: Building bridge at pos:{}'.format(self.pos))
+            # print('[build_bridge_modified]: Building bridge at pos:{}'.format(self.pos))
 
             start_searching_buildable_point = True
 
             buildable_coords_real = self.buildable_coords_unreachable.copy()
 
-            print('[build_bridge_modified]: buildable_coords_unreachable_real: {}'.format(buildable_coords_real))
+            # print('[build_bridge_modified]: buildable_coords_unreachable_real: {}'.format(buildable_coords_real))
 
             while start_searching_buildable_point:
                 nearest_point = find_nearest_point(point_goal, buildable_coords_real)
 
-                print('[build_bridge_modified]: buildable_coords_unreachable_real: {}'.format(buildable_coords_real))
-                print('[build_bridge_modified]: Nearest point: {}'.format(nearest_point))
+                # print('[build_bridge_modified]: buildable_coords_unreachable_real: {}'.format(buildable_coords_real))
+                # print('[build_bridge_modified]: Nearest point: {}'.format(nearest_point))
 
                 if nearest_point is None:
-                    print('[build_bridge_modified]: Nearest point is None')
+                    # print('[build_bridge_modified]: Nearest point is None')
                     return False
 
                 bridge_path = find_shortest_path(self.pos, nearest_point, self.map.island_map,
                                                  is_obstacles_reversed=True)
-                print('[build_bridge_modified]: Bridge length: {}'.format(len(bridge_path)))
+                # print('[build_bridge_modified]: Bridge length: {}'.format(len(bridge_path)))
 
                 if len(bridge_path) > self.max_bridge_length or len(bridge_path) == 0:
-                    print('[build_bridge_modified]: Bridge was not built because of MAX_BRIDGE_LENGTH: {}'.format(len(bridge_path) > self.max_bridge_length))
-                    print('[build_bridge_modified]: Bridge was not built because of bridge LENGTH IS NULL: {}'.format(len(bridge_path) == 0))
+                    # print('[build_bridge_modified]: Bridge was not built because of MAX_BRIDGE_LENGTH: {}'.format(len(bridge_path) > self.max_bridge_length))
+                    # print('[build_bridge_modified]: Bridge was not built because of bridge LENGTH IS NULL: {}'.format(len(bridge_path) == 0))
                     buildable_coords_real.remove(nearest_point)
                     continue
 
@@ -193,7 +196,10 @@ class RobotBuilderController(RobotController):
                 self.buildable_coords.remove(self.pos)
 
                 if self.performance_control:
-                    self.performance_control.add_steps(len(bridge_path))
+                    # self.performance_control.add_steps(len(bridge_path))
+                    building_operation_cost = BRIDGE_BUILDING_COST * len(bridge_path)
+                    self.performance_control.add_steps(building_operation_cost)
+                    self.performance_control.increase_operation_cost_sum(building_operation_cost, self.robot_type)
 
             return True
 
@@ -331,9 +337,11 @@ class RobotBuilderController(RobotController):
                 self.buildable_coords.remove(self.pos)
 
                 if self.performance_control:
-                    self.performance_control.add_steps(len(bridge_path))
-            return True
+                    building_operation_cost = BRIDGE_BUILDING_COST * len(bridge_path)
+                    self.performance_control.add_steps(building_operation_cost)
+                    self.performance_control.increase_operation_cost_sum(building_operation_cost, self.robot_type)
 
+            return True
 
     def analyze_map(self):
         hard_break = False
