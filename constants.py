@@ -11,6 +11,10 @@ GRAPH_BASED_ALG = 'graph'
 GREEDY_ALG = 'greedy'
 BRUTE_FORCE_ALG = 'brut_force'
 
+# Delivery algorithms
+REACHABILITY_ALG = 'reachability'
+DEFAULT_ALG = 'default'
+
 # Defaults
 MAX_BRIDGE_LENGTH = 12
 

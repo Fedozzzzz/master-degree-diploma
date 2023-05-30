@@ -1,83 +1,18 @@
-# self.tasks = pd.DataFrame(columns=['task_type', 'task_location', 'robot_id'])
-#
-#
-# def add_delivery_task(self, start_loc, end_loc):
-#     # добавление задачи доставки
-#     self.tasks = self.tasks.append({'task_type': 'delivery', 'task_location': end_loc}, ignore_index=True)
-#     # поиск ближайшего свободного робота-курьера и добавление задачи на его исполнение
-#     free_courier = self.find_closest_free_robot(start_loc, 'courier')
-#     if free_courier is not None:
-#         self.tasks.loc[len(self.tasks) - 1, 'robot_id'] = free_courier
-#     else:
-#         print('No free courier available.')
-#
-#
-# def add_bridge_task(self, start_loc, end_loc):
-#     # добавление задачи на строительство моста
-#     self.tasks = self.tasks.append({'task_type': 'bridge', 'task_location': end_loc}, ignore_index=True)
-#     # поиск свободного робота-строителя и добавление задачи на его исполнение
-#     free_builder = self.find_free_robot('builder')
-#     if free_builder is not None:
-#         self.tasks.loc[len(self.tasks) - 1, 'robot_id'] = free_builder
-#     else:
-#         print('No free builder available.')
-#
-#
-# def find_closest_free_robot(self, loc, robot_type):
-#     # поиск ближайшего свободного робота заданного типа
-#     min_distance = float('inf')
-#     closest_robot = None
-#     for robot in self.robots:
-#         if robot.robot_type == robot_type and robot.busy == False:
-#             distance = self.map.get_distance(robot.current_location, loc)
-#             if distance < min_distance:
-#                 min_distance = distance
-#                 closest_robot = robot.robot_id
-#     if closest_robot is not None:
-#         self.robots[closest_robot].busy = True
-#     return closest_robot
-#
-#
-# def find_free_robot(self, robot_type):
-#     # поиск свободного робота заданного типа
-#     for robot in self.robots:
-#         if robot.robot_type == robot_type and robot.busy == False:
-#             robot.busy = True
-#             return robot.robot_id
-#     return None
-#
-#
-# def execute_tasks(self):
-#     # выполнение всех задач в порядке добавления
-#     for i, row in self.tasks.iterrows():
-#         task_type = row['task_type']
-#         task_location = row['task_location']
-#         robot_id = row['robot_id']
-#         if task_type == 'delivery':
-#             if robot_id is None:
-#                 print('No available courier to execute delivery task.')
-#                 continue
-#             self.robots[robot_id].move_to(task_location)
-#             self.robots[robot_id].unload()
-#         elif task_type == 'bridge':
-#             if robot_id is None:
-#                 print('No available builder to execute bridge task.')
-#                 continue
-#             self.robots[robot_id].build_bridge(task_location)
-#         self.tasks = self.tasks.drop(index=i)
 from task import Task
 from utils import find_nearest_point
-from constants import BUILD_TASK_PRIORITY, DELIVERY_TASK_PRIORITY, DELIVERY_TASK_TYPE, BUILD_TASK_TYPE
+from constants import BUILD_TASK_PRIORITY, DELIVERY_TASK_PRIORITY, DELIVERY_TASK_TYPE, BUILD_TASK_TYPE, REACHABILITY_ALG
 
 
 class TaskPlanner:
-    def __init__(self, map_, robots_courier, robots_builder, gui=None, building_algorithm=None):
+    def __init__(self, map_, robots_courier, robots_builder, gui=None, building_algorithm=None,
+                 delivery_algorithm=None):
         self.map = map_
         self.robots_courier = robots_courier
         self.robots_builder = robots_builder
         self.gui = gui
         self.tasks = []
         self.building_algorithm = building_algorithm
+        self.delivery_algorithm = delivery_algorithm
 
     def execute_tasks(self):
         for task in self.tasks:
@@ -166,7 +101,10 @@ class TaskPlanner:
 
             for rc in free_robots_courier:
                 print('Free delivery coords: {}'.format(free_delivery_coords))
-                nearest_free_delivery_coords = rc.find_nearest_delivery(free_delivery_coords)
+                # nearest_free_delivery_coords = rc.find_nearest_delivery(free_delivery_coords)
+                nearest_free_delivery_coords = rc.find_nearest_delivery_by_reachability(
+                    free_delivery_coords) if self.delivery_algorithm == REACHABILITY_ALG else rc.find_nearest_delivery(
+                    free_delivery_coords)
                 print('Nearest free delivery coords: {}'.format(nearest_free_delivery_coords))
                 if nearest_free_delivery_coords:
                     options = {'delivery_coords': nearest_free_delivery_coords}
@@ -187,9 +125,13 @@ class TaskPlanner:
 
                 if not is_task_executed and task.type == DELIVERY_TASK_TYPE:
                     free_robots_builder = self.get_free_robots_builder()
-                    nearest_robot_builder = task.robot.find_nearest_robot_builder(free_robots_builder)
+                    # nearest_robot_builder = task.robot.find_nearest_robot_builder(free_robots_builder)
+                    nearest_robot_builder = task.robot.find_nearest_robot_builder_by_reachability(
+                        free_robots_builder) if self.delivery_algorithm == REACHABILITY_ALG else task.robot.find_nearest_robot_builder(
+                        free_robots_builder)
                     task_options = {'nearest_courier_robot': task.robot, 'algorithm': self.building_algorithm}
-                    new_task = Task(BUILD_TASK_TYPE, nearest_robot_builder, options=task_options, priority=BUILD_TASK_PRIORITY)
+                    new_task = Task(BUILD_TASK_TYPE, nearest_robot_builder, options=task_options,
+                                    priority=BUILD_TASK_PRIORITY)
 
                     self.plan_task(new_task)
                 else:

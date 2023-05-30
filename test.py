@@ -5,7 +5,7 @@ import numpy as np
 import noise
 import json
 
-from constants import GRAPH_BASED_ALG, GREEDY_ALG
+from constants import GRAPH_BASED_ALG, GREEDY_ALG, DEFAULT_ALG, REACHABILITY_ALG
 from island_map import IslandMap
 from island_map_gui import IslandMapGUI
 from performance_control import PerformanceControl
@@ -13,6 +13,7 @@ from robot_builder_controller import RobotBuilderController
 from robot_courier_controller import RobotCourierController
 from task_planner import TaskPlanner
 from scipy.stats import f_oneway
+
 
 def generate_island_map():
     # Размеры карты
@@ -135,8 +136,12 @@ def generate_robot_points(island_map, N, delivery_coords=None, forbidden_coords=
 
 
 def plot_result(delivery_points_nums, test_results_greedy, test_results_graph, title=None, xlabel=None, ylabel=None):
-    plt.plot(delivery_points_nums, test_results_greedy, label="greedy", marker='o')  # Построение графика
-    plt.plot(delivery_points_nums, test_results_graph, label="graph", marker='o')  # Построение графика
+    # plt.plot(delivery_points_nums, test_results_greedy, label="greedy", marker='o')  # Построение графика
+    # plt.plot(delivery_points_nums, test_results_graph, label="graph", marker='o')  # Построение графика
+
+    plt.plot(delivery_points_nums, test_results_greedy, label="default", marker='o')  # Построение графика
+    plt.plot(delivery_points_nums, test_results_graph, label="modified", marker='o')  # Построение графика
+
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -152,6 +157,7 @@ def plot_result(delivery_points_nums, test_results_greedy, test_results_graph, t
 def get_performance(island_map_coords, current_buildable_coords, current_delivery_points, robots_builder_points,
                     robots_courier_points, with_buildable_plan=False):
     island_map = IslandMap(island_map_coords, current_delivery_points.copy(), with_buildable_plan=with_buildable_plan)
+    # island_map = IslandMap(island_map_coords, current_delivery_points.copy(), with_buildable_plan=True)
     width = len(island_map_coords)
     height = width
 
@@ -171,8 +177,14 @@ def get_performance(island_map_coords, current_buildable_coords, current_deliver
         for rcc in robots_courier_points]
 
     building_algorithm = GRAPH_BASED_ALG if with_buildable_plan else GREEDY_ALG
+    delivery_algorithm = REACHABILITY_ALG if with_buildable_plan else DEFAULT_ALG
 
-    task_planner = TaskPlanner(island_map, robots_courier, robots_builder, building_algorithm=building_algorithm)
+    task_planner = TaskPlanner(island_map, robots_courier, robots_builder, building_algorithm=building_algorithm,
+                               delivery_algorithm=delivery_algorithm)
+
+    # task_planner = TaskPlanner(island_map, robots_courier, robots_builder, building_algorithm=GRAPH_BASED_ALG,
+    #                            delivery_algorithm=delivery_algorithm)
+
     task_planner.plan_and_execute_tasks()
 
     steps_amount = performance_control.get_steps_count()
@@ -224,38 +236,30 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
         print('curr_robots_builder_points: {}'.format(curr_robots_builder_points))
         print('curr_robots_courier_points: {}'.format(curr_robots_courier_points))
 
-        try:
-            performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy, = get_performance(
-                island_map_coords, current_buildable_coords.copy(),
-                current_delivery_points.copy(),
-                curr_robots_builder_points.copy(), curr_robots_courier_points.copy())
+        performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy, = get_performance(
+            island_map_coords, current_buildable_coords.copy(),
+            current_delivery_points.copy(),
+            curr_robots_builder_points.copy(), curr_robots_courier_points.copy())
 
-            performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph, = get_performance(
-                island_map_coords, current_buildable_coords.copy(),
-                current_delivery_points.copy(),
-                curr_robots_builder_points.copy(), curr_robots_courier_points.copy(),
-                with_buildable_plan=True)
+        performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph, = get_performance(
+            island_map_coords, current_buildable_coords.copy(),
+            current_delivery_points.copy(),
+            curr_robots_builder_points.copy(), curr_robots_courier_points.copy(),
+            with_buildable_plan=True)
 
-            test_results_couriers_greedy.append(couriers_operations_cost_greedy)
-            test_results_builders_greedy.append(builders_operations_cost_greedy)
+        test_results_couriers_greedy.append(couriers_operations_cost_greedy)
+        test_results_builders_greedy.append(builders_operations_cost_greedy)
 
-            test_results_couriers_graph.append(couriers_operations_cost_graph)
-            test_results_builders_graph.append(builders_operations_cost_graph)
+        test_results_couriers_graph.append(couriers_operations_cost_graph)
+        test_results_builders_graph.append(builders_operations_cost_graph)
 
-            test_results_greedy.append(performance_greedy)
-            test_results_graph.append(performance_graph)
+        test_results_greedy.append(performance_greedy)
+        test_results_graph.append(performance_graph)
 
-            num_of_pairs_arr.append(current_num_of_pairs)
+        num_of_pairs_arr.append(current_num_of_pairs)
 
-            print("final performance greedy: {}".format(performance_greedy))
-            print("final performance graph: {}".format(performance_graph))
-        except:
-            print('--------------TASK FAILED-----------------')
-            print('PARAMS:')
-            print('current_delivery_points: {}'.format(current_delivery_points))
-            print('curr_robots_builder_points: {}'.format(curr_robots_builder_points))
-            print('curr_robots_courier_points: {}'.format(curr_robots_courier_points))
-            break
+        print("final performance greedy: {}".format(performance_greedy))
+        print("final performance graph: {}".format(performance_graph))
 
     print('num_of_pairs_arr: {}'.format(num_of_pairs_arr))
     print('test_results_greedy: {}'.format(test_results_greedy))
@@ -358,37 +362,28 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
 
         print(robots_courier_points)
 
-        try:
-            performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy = get_performance(
-                island_map_coords, current_buildable_coords.copy(),
-                current_delivery_points.copy(),
-                robots_builder_points, robots_courier_points)
+        performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy = get_performance(
+            island_map_coords, current_buildable_coords.copy(),
+            current_delivery_points.copy(),
+            robots_builder_points, robots_courier_points)
 
-            performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph = get_performance(
-                island_map_coords, current_buildable_coords.copy(),
-                current_delivery_points.copy(),
-                robots_builder_points, robots_courier_points, with_buildable_plan=True)
+        performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph = get_performance(
+            island_map_coords, current_buildable_coords.copy(),
+            current_delivery_points.copy(),
+            robots_builder_points, robots_courier_points, with_buildable_plan=True)
 
-            test_results_couriers_greedy.append(couriers_operations_cost_greedy)
-            test_results_builders_greedy.append(builders_operations_cost_greedy)
+        test_results_couriers_greedy.append(couriers_operations_cost_greedy)
+        test_results_builders_greedy.append(builders_operations_cost_greedy)
 
-            test_results_couriers_graph.append(couriers_operations_cost_graph)
-            test_results_builders_graph.append(builders_operations_cost_graph)
+        test_results_couriers_graph.append(couriers_operations_cost_graph)
+        test_results_builders_graph.append(builders_operations_cost_graph)
 
-            test_results_greedy.append(performance_greedy)
-            test_results_graph.append(performance_graph)
+        test_results_greedy.append(performance_greedy)
+        test_results_graph.append(performance_graph)
 
-            delivery_points_nums.append(len(current_delivery_points))
-
-            print("final performance greedy: {}".format(performance_greedy))
-            print("final performance graph: {}".format(performance_graph))
-        except:
-            print('--------------TASK FAILED-----------------')
-            print('PARAMS:')
-            print('current_delivery_points: {}'.format(current_delivery_points))
-            print('robots_builder_points: {}'.format(robots_builder_points))
-            print('robots_courier_points: {}'.format(robots_courier_points))
-            break
+        delivery_points_nums.append(len(current_delivery_points))
+        print("final performance greedy: {}".format(performance_greedy))
+        print("final performance graph: {}".format(performance_graph))
 
     print('delivery_points_nums: {}'.format(delivery_points_nums))
     print('test_results_greedy: {}'.format(test_results_greedy))
@@ -441,7 +436,7 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
 def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of_delivery_points, num_of_iterations):
     result_test_greedy = []
     result_test_graph = []
-    num_of_pairs_arr = None
+    num_of_pairs_arr_result = None
 
     island_map_coords_reversed = list(map(list, zip(*[row[:] for row in island_map])))
 
@@ -453,30 +448,50 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
     result_test_courier_graph = []
     result_test_builder_graph = []
 
-    for i in range(num_of_iterations):
+    success_count = 0
+    i = 0
+    while success_count < num_of_iterations:
         print('//////////////////////////////////////////////////////////////////////////////')
         print('NUM OF ITERATION: {}'.format(i))
         # test_results_greedy, test_results_graph, num_of_pairs_arr = test_num_of_pairs(island_map, buildable_coords, num_of_pairs, num_of_delivery_points)
-        test_results_greedy, test_results_graph, num_of_pairs_arr, robots_results = test_num_of_pairs(
-            island_map,
-            buildable_coords,
-            num_of_pairs,
-            delivery_points_initial=delivery_points.copy(),
-            num_of_delivery_points=num_of_delivery_points)
 
-        result_test_greedy.append(test_results_greedy)
-        result_test_graph.append(test_results_graph)
+        i += 1
+        try:
+            test_results_greedy, test_results_graph, num_of_pairs_arr, robots_results = test_num_of_pairs(
+                island_map,
+                buildable_coords,
+                num_of_pairs,
+                delivery_points_initial=delivery_points.copy(),
+                num_of_delivery_points=num_of_delivery_points)
 
-        result_test_courier_greedy.append(robots_results["greedy"]["courier"])
-        result_test_builder_greedy.append(robots_results["greedy"]["builder"])
+            result_test_greedy.append(test_results_greedy)
+            result_test_graph.append(test_results_graph)
 
-        result_test_courier_graph.append(robots_results["graph"]["courier"])
-        result_test_builder_graph.append(robots_results["graph"]["builder"])
+            result_test_courier_greedy.append(robots_results["greedy"]["courier"])
+            result_test_builder_greedy.append(robots_results["greedy"]["builder"])
 
-        if i == 0:
-            num_of_pairs_arr = num_of_pairs_arr.copy()
+            result_test_courier_graph.append(robots_results["graph"]["courier"])
+            result_test_builder_graph.append(robots_results["graph"]["builder"])
+
+            num_of_pairs_arr_result = num_of_pairs_arr.copy()
+            success_count += 1
+        except Exception as e:
+            print('--------------TASK FAILED-----------------')
+            print('AN ERROR OCCURRED WHILE TEST RUNNING: {}'.format(e))
+            print('PARAMS:')
+            print('num of iteration: {}'.format(i))
+            print('num_of_delivery_points: {}'.format(num_of_delivery_points))
+            print('delivery_points: {}'.format(delivery_points))
+            print("RUNNING TEST...")
+            print('------------------------------------------')
+            continue
+
         print('//////////////////////////////////////////////////////////////////////////////')
 
+    print('RESULT NUM OF ITERATIONS: {}'.format(i))
+    print('NUM OF SUCCESSFUL ITERATIONS: {}'.format(success_count))
+    print('result_test_greedy: {}'.format(result_test_greedy))
+    print('result_test_graph: {}'.format(result_test_graph))
     final_result_test_greedy = np.mean(result_test_greedy, axis=0)
     final_result_test_graph = np.mean(result_test_graph, axis=0)
 
@@ -488,7 +503,7 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
 
     print('final_result_test_greedy: {}'.format(final_result_test_greedy))
     print('final_result_test_graph: {}'.format(final_result_test_graph))
-    print('num_of_pairs_arr: {}'.format(num_of_pairs_arr))
+    print('num_of_pairs_arr_result: {}'.format(num_of_pairs_arr_result))
     print('====================================================')
     print('final_result_test_courier_greedy: {}'.format(final_result_test_courier_greedy))
     print('final_result_test_builder_greedy: {}'.format(final_result_test_builder_greedy))
@@ -500,20 +515,22 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
         num_of_delivery_points, num_of_iterations)
     xlabel = 'Количество пар роботов'
     ylabel = 'Сумма стоимости всех операций системы'
-    plot_result(num_of_pairs_arr, final_result_test_greedy, final_result_test_graph, title, xlabel, ylabel)
+    plot_result(num_of_pairs_arr_result, final_result_test_greedy, final_result_test_graph, title, xlabel, ylabel)
 
     title = '{} пар роботов-курьеров, {} итераций, {} точек доставки'.format(
         num_of_pairs, num_of_iterations, num_of_delivery_points)
     xlabel = 'Количество пар роботов'
     ylabel = 'Средяя стоимость операций'
-    plot_result(num_of_pairs_arr, final_result_test_courier_greedy, final_result_test_courier_graph, title, xlabel,
+    plot_result(num_of_pairs_arr_result, final_result_test_courier_greedy, final_result_test_courier_graph, title,
+                xlabel,
                 ylabel)
 
     title = '{} пар роботов-строителей, {} итераций, {} точек доставки'.format(
         num_of_pairs, num_of_iterations, num_of_delivery_points)
     xlabel = 'Количество пар роботов'
     ylabel = 'Средяя стоимость операций'
-    plot_result(num_of_pairs_arr, final_result_test_builder_greedy, final_result_test_builder_graph, title, xlabel,
+    plot_result(num_of_pairs_arr_result, final_result_test_builder_greedy, final_result_test_builder_graph, title,
+                xlabel,
                 ylabel)
 
     # Примените однофакторный ANOVA
@@ -581,7 +598,7 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
                                         num_of_iterations):
     result_test_greedy = []
     result_test_graph = []
-    delivery_points_nums = None
+    delivery_points_nums_result = None
 
     island_map_coords_reversed = list(map(list, zip(*[row[:] for row in island_map])))
 
@@ -595,30 +612,58 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
     result_test_courier_graph = []
     result_test_builder_graph = []
 
-    for i in range(num_of_iterations):
+    success_count = 0
+    i = 0
+    while success_count < num_of_iterations:
         print('//////////////////////////////////////////////////////////////////////////////')
         print('NUM OF ITERATION: {}'.format(i))
         # test_results_greedy, test_results_graph, num_of_pairs_arr = test_num_of_pairs(island_map, buildable_coords, num_of_pairs, num_of_delivery_points)
-        test_results_greedy, test_results_graph, num_of_pairs_arr, robots_results = test_num_of_delivery_points(
-            island_map,
-            buildable_coords,
-            num_of_delivery_points=num_of_delivery_points,
-            robots_builder_points_initial=robots_builder_coords,
-            robots_courier_points_initial=robots_courier_coords,
-            num_of_pairs=num_of_pairs)
+        i += 1
+        try:
+            test_results_greedy, test_results_graph, delivery_points_nums, robots_results = test_num_of_delivery_points(
+                island_map,
+                buildable_coords,
+                num_of_delivery_points=num_of_delivery_points,
+                robots_builder_points_initial=robots_builder_coords,
+                robots_courier_points_initial=robots_courier_coords,
+                num_of_pairs=num_of_pairs)
 
-        result_test_greedy.append(test_results_greedy)
-        result_test_graph.append(test_results_graph)
+            result_test_greedy.append(test_results_greedy)
+            result_test_graph.append(test_results_graph)
 
-        result_test_courier_greedy.append(robots_results["greedy"]["courier"])
-        result_test_builder_greedy.append(robots_results["greedy"]["builder"])
+            result_test_courier_greedy.append(robots_results["greedy"]["courier"])
+            result_test_builder_greedy.append(robots_results["greedy"]["builder"])
 
-        result_test_courier_graph.append(robots_results["graph"]["courier"])
-        result_test_builder_graph.append(robots_results["graph"]["builder"])
+            result_test_courier_graph.append(robots_results["graph"]["courier"])
+            result_test_builder_graph.append(robots_results["graph"]["builder"])
 
-        if i == 0:
-            delivery_points_nums = num_of_pairs_arr.copy()
+            delivery_points_nums_result = delivery_points_nums.copy()
+            success_count += 1
+        except Exception as e:
+            print('--------------TASK FAILED-----------------')
+            print('AN ERROR OCCURRED WHILE TEST RUNNING: {}'.format(e))
+            print('PARAMS:')
+            print('iteration: {}'.format(i))
+            print('num_of_delivery_points: {}'.format(num_of_delivery_points))
+            print('robots_builder_coords: {}'.format(robots_builder_coords))
+            print('robots_courier_coords: {}'.format(robots_courier_coords))
+            print('num_of_pairs: {}'.format(num_of_pairs))
+            print("RUNNING TEST...")
+            print('------------------------------------------')
+            continue
+
         print('//////////////////////////////////////////////////////////////////////////////')
+
+    print('RESULT NUM OF ITERATIONS: {}'.format(i))
+    print('NUM OF SUCCESSFUL ITERATIONS: {}'.format(success_count))
+
+    print('result_test_greedy: {}'.format(result_test_greedy))
+    print('result_test_greedy.shape: {}'.format(np.array(result_test_greedy).shape))
+    print('result_test_greedy len: {}'.format(len(result_test_greedy)))
+
+    print('result_test_graph: {}'.format(result_test_graph))
+    print('result_test_graph.shape: {}'.format(np.array(result_test_graph).shape))
+    print('result_test_greedy len: {}'.format(len(result_test_graph)))
 
     final_result_test_greedy = np.mean(result_test_greedy, axis=0)
     final_result_test_graph = np.mean(result_test_graph, axis=0)
@@ -631,7 +676,7 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
 
     print('final_result_test_greedy: {}'.format(final_result_test_greedy))
     print('final_result_test_graph: {}'.format(final_result_test_graph))
-    print('delivery_points_nums: {}'.format(delivery_points_nums))
+    print('delivery_points_nums_result: {}'.format(delivery_points_nums_result))
     print('====================================================')
     print('final_result_test_courier_greedy: {}'.format(final_result_test_courier_greedy))
     print('final_result_test_builder_greedy: {}'.format(final_result_test_builder_greedy))
@@ -643,20 +688,22 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
         num_of_pairs, num_of_iterations)
     xlabel = 'Количество точек доставки'
     ylabel = 'Сумма стоимости всех операций системы'
-    plot_result(delivery_points_nums, final_result_test_greedy, final_result_test_graph, title, xlabel, ylabel)
+    plot_result(delivery_points_nums_result, final_result_test_greedy, final_result_test_graph, title, xlabel, ylabel)
 
     title = '{} пар роботов-курьеров, {} итераций, {} точек доставки'.format(
         num_of_pairs, num_of_iterations, num_of_delivery_points)
     xlabel = 'Количество точек доставки'
     ylabel = 'Средяя стоимость операций'
-    plot_result(delivery_points_nums, final_result_test_courier_greedy, final_result_test_courier_graph, title, xlabel,
+    plot_result(delivery_points_nums_result, final_result_test_courier_greedy, final_result_test_courier_graph, title,
+                xlabel,
                 ylabel)
 
-    title = '{} пар роботов-курьеров, {} итераций, {} точек доставки'.format(
+    title = '{} пар роботов-строителей, {} итераций, {} точек доставки'.format(
         num_of_pairs, num_of_iterations, num_of_delivery_points)
     xlabel = 'Количество точек доставки'
     ylabel = 'Средяя стоимость операций'
-    plot_result(delivery_points_nums, final_result_test_builder_greedy, final_result_test_builder_graph, title, xlabel,
+    plot_result(delivery_points_nums_result, final_result_test_builder_greedy, final_result_test_builder_graph, title,
+                xlabel,
                 ylabel)
 
     # Примените однофакторный ANOVA
@@ -729,13 +776,14 @@ island_map, buildable_coords = generate_island_map()
 #                           num_of_iterations=10)
 
 # test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=10, num_of_delivery_points=5,
-#                           num_of_iterations=10)
+#                           num_of_iterations=1)
 
+# test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=4,
+#                                     num_of_iterations=5)
 
-test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10,
-                                    num_of_iterations=10)
+test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=30, num_of_delivery_points=15,
+                          num_of_iterations=5)
 
-test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=20, num_of_delivery_points=10,
-                          num_of_iterations=10)
-
+# test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10,
+#                                     num_of_iterations=10)
 # test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10, num_of_iterations=10)
