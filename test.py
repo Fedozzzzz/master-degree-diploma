@@ -136,11 +136,11 @@ def generate_robot_points(island_map, N, delivery_coords=None, forbidden_coords=
 
 
 def plot_result(delivery_points_nums, test_results_greedy, test_results_graph, title=None, xlabel=None, ylabel=None):
-    # plt.plot(delivery_points_nums, test_results_greedy, label="greedy", marker='o')  # Построение графика
-    # plt.plot(delivery_points_nums, test_results_graph, label="graph", marker='o')  # Построение графика
+    plt.plot(delivery_points_nums, test_results_greedy, label="greedy", marker='o')  # Построение графика
+    plt.plot(delivery_points_nums, test_results_graph, label="graph", marker='o')  # Построение графика
 
-    plt.plot(delivery_points_nums, test_results_greedy, label="default", marker='o')  # Построение графика
-    plt.plot(delivery_points_nums, test_results_graph, label="modified", marker='o')  # Построение графика
+    # plt.plot(delivery_points_nums, test_results_greedy, label="default", marker='o')  # Построение графика
+    # plt.plot(delivery_points_nums, test_results_graph, label="modified", marker='o')  # Построение графика
 
     plt.title(title)
     plt.xlabel(xlabel)
@@ -448,12 +448,17 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
     result_test_courier_graph = []
     result_test_builder_graph = []
 
+    num_of_iterations_max = num_of_iterations + 15
+
     success_count = 0
     i = 0
     while success_count < num_of_iterations:
         print('//////////////////////////////////////////////////////////////////////////////')
         print('NUM OF ITERATION: {}'.format(i))
         # test_results_greedy, test_results_graph, num_of_pairs_arr = test_num_of_pairs(island_map, buildable_coords, num_of_pairs, num_of_delivery_points)
+
+        if i >= num_of_iterations_max:
+            break
 
         i += 1
         try:
@@ -543,14 +548,57 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
     statistics_courier_graph, p_value_courier_graph = f_oneway(*result_test_courier_graph)
     statistics_builder_graph, p_value_builder_graph = f_oneway(*result_test_builder_graph)
 
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_greedy:", statistics_greedy)
+    print("p-value greedy:", p_value_greedy)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_graph:", statistics_graph)
+    print("p-value graph:", p_value_graph)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_courier_greedy:", statistics_courier_greedy)
+    print("p_value_courier_greedy:", p_value_courier_greedy)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_builder_greedy:", statistics_builder_greedy)
+    print("p_value_builder_greedy:", p_value_builder_greedy)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_courier_graph:", statistics_courier_graph)
+    print("p_value_courier_graph:", p_value_courier_graph)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_builder_graph:", statistics_builder_graph)
+    print("p_value_builder_graph:", p_value_builder_graph)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+
+    performance_increase = [((graph - greedy) / greedy) * 100 for graph, greedy in
+                            zip(final_result_test_graph, final_result_test_greedy)]
+    performance_increase_percent = np.mean(performance_increase, axis=0)
+
+    performance_increase_courier = [((graph - greedy) / greedy) * 100 for graph, greedy in
+                                    zip(final_result_test_courier_graph, final_result_test_courier_greedy)]
+    performance_increase_percent_courier = np.mean(performance_increase_courier, axis=0)
+
+    performance_increase_builder = [((graph - greedy) / greedy) * 100 for graph, greedy in
+                                    zip(final_result_test_builder_graph, final_result_test_builder_greedy)]
+    performance_increase_percent_builder = np.mean(performance_increase_builder, axis=0)
+
+    print('-------------------------------------------------')
+    print('performance_increase_percent: {}'.format(performance_increase_percent))
+    print('-------------------------------------------------')
+    print('performance_increase_percent_courier: {}'.format(performance_increase_percent_courier))
+    print('-------------------------------------------------')
+    print('performance_increase_percent_builder: {}'.format(performance_increase_percent_builder))
+    print('-------------------------------------------------')
+
     test_num_of_pairs_result = {
+        "performance_increase_percent": performance_increase_percent,
+        "performance_increase_percent_courier": performance_increase_percent_courier,
+        "performance_increase_percent_builder": performance_increase_percent_builder,
         "greedy": {
             "statistics_greedy": statistics_greedy,
             "p_value_greedy": p_value_greedy,
         },
         "graph": {
-            "courier": statistics_graph,
-            "builder": p_value_graph,
+            "statistics_graph": statistics_graph,
+            "p_value_graph": p_value_graph,
         },
         "courier_greedy": {
             "statistics_courier_greedy": statistics_courier_greedy,
@@ -573,26 +621,6 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
     with open("test_num_of_pairs_result.json", "w") as file:
         json.dump(test_num_of_pairs_result, file)
 
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_greedy:", statistics_greedy)
-    print("p-value greedy:", p_value_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_graph:", statistics_graph)
-    print("p-value graph:", p_value_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_courier_greedy:", statistics_courier_greedy)
-    print("p_value_courier_greedy:", p_value_courier_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_builder_greedy:", statistics_builder_greedy)
-    print("p_value_builder_greedy:", p_value_builder_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_courier_graph:", statistics_courier_graph)
-    print("p_value_courier_graph:", p_value_courier_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_builder_graph:", statistics_builder_graph)
-    print("p_value_builder_graph:", p_value_builder_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-
 
 def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pairs, num_of_delivery_points,
                                         num_of_iterations):
@@ -612,12 +640,17 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
     result_test_courier_graph = []
     result_test_builder_graph = []
 
+    num_of_iterations_max = num_of_iterations + 20
+
     success_count = 0
     i = 0
     while success_count < num_of_iterations:
         print('//////////////////////////////////////////////////////////////////////////////')
         print('NUM OF ITERATION: {}'.format(i))
         # test_results_greedy, test_results_graph, num_of_pairs_arr = test_num_of_pairs(island_map, buildable_coords, num_of_pairs, num_of_delivery_points)
+        if i >= num_of_iterations_max:
+            break
+
         i += 1
         try:
             test_results_greedy, test_results_graph, delivery_points_nums, robots_results = test_num_of_delivery_points(
@@ -716,14 +749,111 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
     statistics_courier_graph, p_value_courier_graph = f_oneway(*result_test_courier_graph)
     statistics_builder_graph, p_value_builder_graph = f_oneway(*result_test_builder_graph)
 
+    statistics_total, p_value_total = f_oneway(*[final_result_test_greedy, final_result_test_graph])
+
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_total:", statistics_total)
+    print("p-value total:", p_value_total)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_greedy:", statistics_greedy)
+    print("p-value greedy:", p_value_greedy)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_graph:", statistics_graph)
+    print("p-value graph:", p_value_graph)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_courier_greedy:", statistics_courier_greedy)
+    print("p_value_courier_greedy:", p_value_courier_greedy)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_builder_greedy:", statistics_builder_greedy)
+    print("p_value_builder_greedy:", p_value_builder_greedy)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_courier_graph:", statistics_courier_graph)
+    print("p_value_courier_graph:", p_value_courier_graph)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+    print("ANOVA statistics_builder_graph:", statistics_builder_graph)
+    print("p_value_builder_graph:", p_value_builder_graph)
+    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+
+    # Выполните аппроксимацию линейной функцией для каждого графика
+    coeffs_greedy = np.polyfit(delivery_points_nums_result, final_result_test_greedy,
+                               1)  # аппроксимация для графика жадного алгоритма
+    coeffs_graph = np.polyfit(delivery_points_nums_result, final_result_test_graph,
+                              1)  # аппроксимация для графика на основе графов
+
+    coeffs_courier_greedy = np.polyfit(delivery_points_nums_result, final_result_test_courier_greedy, 1)
+    coeffs_builder_greedy = np.polyfit(delivery_points_nums_result, final_result_test_builder_greedy, 1)
+
+    coeffs_courier_graph = np.polyfit(delivery_points_nums_result, final_result_test_courier_graph, 1)
+    coeffs_builder_graph = np.polyfit(delivery_points_nums_result, final_result_test_builder_graph, 1)
+
+    # Получите значения углов наклона
+    slope_greedy = coeffs_greedy[0]  # угол наклона для графика жадного алгоритма
+    slope_graph = coeffs_graph[0]  # угол наклона для графика на основе графов
+
+    slope_courier_greedy = coeffs_courier_greedy[0]  # угол наклона для графика жадного алгоритма
+    slope_builder_greedy = coeffs_builder_greedy[0]  # угол наклона для графика на основе графов
+
+    slope_courier_graph = coeffs_courier_graph[0]  # угол наклона для графика жадного алгоритма
+    slope_builder_graph = coeffs_builder_graph[0]  # угол наклона для графика на основе графов
+
+    # Выведите результат
+    # print("Угол наклона для графика жадного алгоритма: {:.2f}".format(slope_greedy))
+    # print("Угол наклона для графика на основе графов: {:.2f}".format(slope_graph))
+
+    print('-------------------------------------------------')
+    print('slope_angle_greedy: {}'.format(slope_greedy))
+    print('slope_angle_graph: {}'.format(slope_graph))
+    print('-------------------------------------------------')
+    print('slope_courier_greedy: {}'.format(slope_courier_greedy))
+    print('slope_courier_graph: {}'.format(slope_courier_graph))
+    print('-------------------------------------------------')
+    print('slope_builder_greedy: {}'.format(slope_builder_greedy))
+    print('slope_builder_graph: {}'.format(slope_builder_graph))
+    print('-------------------------------------------------')
+
+    performance_increase = [((graph - greedy) / greedy) * 100 for graph, greedy in
+                            zip(final_result_test_graph, final_result_test_greedy)]
+    performance_increase_percent = np.mean(performance_increase, axis=0)
+
+    performance_increase_courier = [((graph - greedy) / greedy) * 100 for graph, greedy in
+                                    zip(final_result_test_courier_graph, final_result_test_courier_greedy)]
+    performance_increase_percent_courier = np.mean(performance_increase_courier, axis=0)
+
+    performance_increase_builder = [((graph - greedy) / greedy) * 100 for graph, greedy in
+                                    zip(final_result_test_builder_graph, final_result_test_builder_greedy)]
+    performance_increase_percent_builder = np.mean(performance_increase_builder, axis=0)
+
+    print('-------------------------------------------------')
+    print('performance_increase_percent: {}'.format(performance_increase_percent))
+    print('-------------------------------------------------')
+    print('performance_increase_percent_courier: {}'.format(performance_increase_percent_courier))
+    print('-------------------------------------------------')
+    print('performance_increase_percent_builder: {}'.format(performance_increase_percent_builder))
+    print('-------------------------------------------------')
+
     test_num_of_delivery_points_result = {
+        "performance_increase_percent": performance_increase_percent,
+        "performance_increase_percent_courier": performance_increase_percent_courier,
+        "performance_increase_percent_builder": performance_increase_percent_builder,
+        "slope_angle": {
+            "greedy": {
+                "slope_greedy": slope_greedy,
+                "slope_courier_greedy": slope_courier_greedy,
+                "slope_builder_greedy": slope_builder_greedy,
+            },
+            "graph": {
+                "slope_graph": slope_graph,
+                "slope_courier_graph": slope_courier_graph,
+                "slope_builder_graph": slope_builder_graph,
+            }
+        },
         "greedy": {
             "statistics_greedy": statistics_greedy,
             "p_value_greedy": p_value_greedy,
         },
         "graph": {
-            "courier": statistics_graph,
-            "builder": p_value_graph,
+            "statistics_graph": statistics_graph,
+            "p_value_graph": p_value_graph,
         },
         "courier_greedy": {
             "statistics_courier_greedy": statistics_courier_greedy,
@@ -746,26 +876,6 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
     with open("test_num_of_delivery_points_result.json", "w") as file:
         json.dump(test_num_of_delivery_points_result, file)
 
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_greedy:", statistics_greedy)
-    print("p-value greedy:", p_value_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_graph:", statistics_graph)
-    print("p-value graph:", p_value_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_courier_greedy:", statistics_courier_greedy)
-    print("p_value_courier_greedy:", p_value_courier_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_builder_greedy:", statistics_builder_greedy)
-    print("p_value_builder_greedy:", p_value_builder_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_courier_graph:", statistics_courier_graph)
-    print("p_value_courier_graph:", p_value_courier_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_builder_graph:", statistics_builder_graph)
-    print("p_value_builder_graph:", p_value_builder_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-
 
 island_map, buildable_coords = generate_island_map()
 # test_num_of_delivery_points(island_map, buildable_coords)
@@ -781,9 +891,9 @@ island_map, buildable_coords = generate_island_map()
 # test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=4,
 #                                     num_of_iterations=5)
 
-test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=30, num_of_delivery_points=15,
-                          num_of_iterations=5)
+test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=20, num_of_delivery_points=10,
+                          num_of_iterations=20)
 
-# test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10,
-#                                     num_of_iterations=10)
+test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10,
+                                    num_of_iterations=20)
 # test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10, num_of_iterations=10)
