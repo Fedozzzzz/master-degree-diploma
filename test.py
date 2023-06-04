@@ -877,7 +877,183 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
         json.dump(test_num_of_delivery_points_result, file)
 
 
+def plot_3d_surface_result(x, y, z, title=None, xlabel=None, ylabel=None, zlabel=None):
+    fig = plt.figure()
+    # ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+    ax1 = fig.add_subplot(1, 1, 1, projection='3d')
+
+    # Преобразование списков в массивы
+    x = np.array(x)
+    y = np.array(y)
+
+    X, Y = np.meshgrid(x, y)
+
+    z = np.array(z)
+
+    ax1.set_xticks(x)
+    ax1.set_yticks(y)
+    # Построение поверхности
+    ax1.plot_surface(X, Y, z, alpha=0.5, cmap='viridis')
+
+    # Настройка осей и меток
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    ax1.set_zlabel(zlabel)
+
+    ax1.scatter(X, Y, z, color='red')
+
+    # Добавление заголовка
+    ax1.set_title(title)
+
+    plt.show()
+
+
+def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_of_delivery_points,
+                               num_of_iterations):
+    island_map_coords_reversed = list(map(list, zip(*[row[:] for row in island_map])))
+
+    delivery_points = generate_point_pairs(island_map_coords_reversed, num_of_delivery_points)
+
+    robots_builder_coords = generate_robot_points(island_map_coords_reversed, num_of_pairs,
+                                                  delivery_coords=delivery_points)
+    robots_courier_coords = generate_robot_points(island_map_coords_reversed, num_of_pairs,
+                                                  delivery_coords=delivery_points,
+                                                  forbidden_coords=robots_builder_coords)
+
+    result_test_courier_greedy = []
+    result_test_builder_greedy = []
+
+    result_test_courier_graph = []
+    result_test_builder_graph = []
+
+    result_performance_greedy = []
+    result_performance_graph = []
+
+    result_num_of_delivery_points = []
+    result_num_of_pairs = []
+
+    for curr_num_delivery_points in range(1, num_of_delivery_points + 1):
+
+        curr_result_performance_greedy = []
+        curr_result_performance_graph = []
+
+        curr_result_test_courier_greedy = []
+        curr_result_test_builder_greedy = []
+
+        curr_result_test_courier_graph = []
+        curr_result_test_builder_graph = []
+
+        for curr_num_pairs in range(1, num_of_pairs + 1):
+            current_delivery_points = delivery_points[:curr_num_delivery_points]
+            current_buildable_coords = buildable_coords.copy()
+
+            curr_robots_builder_points = robots_builder_coords[:curr_num_pairs]
+            curr_robots_courier_points = robots_courier_coords[:curr_num_pairs]
+
+            # print('current_delivery_points: {}'.format(current_delivery_points))
+            print('CURRENT NUM OF DELIVERY POINTS: {}'.format(curr_num_delivery_points))
+            print('CURRENT NUM OF PAIRS: {}'.format(curr_num_pairs))
+
+            performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy = get_performance(
+                island_map, current_buildable_coords.copy(),
+                current_delivery_points.copy(),
+                robots_builder_points=curr_robots_builder_points, robots_courier_points=curr_robots_courier_points)
+
+            performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph = get_performance(
+                island_map, current_buildable_coords.copy(),
+                current_delivery_points.copy(),
+                robots_builder_points=curr_robots_builder_points,
+                robots_courier_points=curr_robots_courier_points, with_buildable_plan=True)
+
+            curr_result_performance_greedy.append(performance_greedy)
+            curr_result_performance_graph.append(performance_graph)
+
+            curr_result_test_courier_greedy.append(couriers_operations_cost_greedy)
+            curr_result_test_builder_greedy.append(builders_operations_cost_greedy)
+
+            curr_result_test_courier_graph.append(couriers_operations_cost_graph)
+            curr_result_test_builder_graph.append(builders_operations_cost_graph)
+
+            if curr_num_delivery_points == 1:
+                result_num_of_pairs.append(curr_num_pairs)
+
+        result_performance_greedy.append(curr_result_performance_greedy)
+        result_performance_graph.append(curr_result_performance_graph)
+
+        result_test_courier_greedy.append(curr_result_test_courier_greedy)
+        result_test_builder_greedy.append(curr_result_test_builder_greedy)
+
+        result_test_courier_graph.append(curr_result_test_courier_graph)
+        result_test_builder_graph.append(curr_result_test_builder_graph)
+
+        result_num_of_delivery_points.append(curr_num_delivery_points)
+
+    print("result_num_of_delivery_points: {}".format(result_num_of_delivery_points))
+    print("result_num_of_pairs: {}".format(result_num_of_pairs))
+    print('-----------------------------------------------------------------')
+    print("result_performance_greedy: {}".format(result_performance_greedy))
+    print("result_performance_graph: {}".format(result_performance_graph))
+    print('-----------------------------------------------------------------')
+    print("result_test_courier_greedy: {}".format(result_test_courier_greedy))
+    print("result_test_builder_greedy: {}".format(result_test_builder_greedy))
+    print('-----------------------------------------------------------------')
+    print("result_test_courier_graph: {}".format(result_test_courier_graph))
+    print("result_test_builder_graph: {}".format(result_test_builder_graph))
+
+    # Поверхность для жадного алгоритма
+    xlabel = 'Num of pairs'
+    ylabel = 'Num of Delivery points'
+    zlabel = 'Total operation cost'
+    title = 'Surface for GREEDY algorithm'
+    plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_performance_greedy, title=title,
+                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
+
+    # Поверхность для алгоритма на графах
+    xlabel = 'Num of pairs'
+    ylabel = 'Num of Delivery points'
+    zlabel = 'Total operation cost'
+    title = 'Surface for GRAPH algorithm'
+    plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_performance_graph, title=title,
+                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
+
+    # Поверхность для жадного алгоритма (роботы-курьреры)
+    xlabel = 'Num of pairs'
+    ylabel = 'Num of Delivery points'
+    zlabel = 'Average operation cost'
+    title = 'Surface for GREEDY algorithm couriers'
+    plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_test_courier_greedy, title=title,
+                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
+
+    # Поверхность для алгоритма на графах (роботы-курьеры)
+    xlabel = 'Num of pairs'
+    ylabel = 'Num of Delivery points'
+    zlabel = 'Average operation cost'
+    title = 'Surface for GRAPH algorithm couriers'
+    plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_test_courier_graph, title=title,
+                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
+
+    # Поверхность для жадного алгоритма (роботы-строители)
+    xlabel = 'Num of pairs'
+    ylabel = 'Num of Delivery points'
+    zlabel = 'Average operation cost'
+    title = 'Surface for GREEDY algorithm builders'
+    plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_test_builder_greedy, title=title,
+                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
+
+    # Поверхность для алгоритма на графах (роботы-строители)
+    xlabel = 'Num of pairs'
+    ylabel = 'Num of Delivery points'
+    zlabel = 'Average operation cost'
+    title = 'Surface for GRAPH algorithm builders'
+    plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_test_builder_graph, title=title,
+                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
+
+
 island_map, buildable_coords = generate_island_map()
+
+test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs=14, num_of_delivery_points=7,
+                           num_of_iterations=1)
+
 # test_num_of_delivery_points(island_map, buildable_coords)
 # test_num_of_pairs(island_map, buildable_coords, 20)
 
@@ -891,9 +1067,9 @@ island_map, buildable_coords = generate_island_map()
 # test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=4,
 #                                     num_of_iterations=5)
 
-test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=20, num_of_delivery_points=10,
-                          num_of_iterations=20)
-
-test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10,
-                                    num_of_iterations=20)
+# test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=20, num_of_delivery_points=10,
+#                           num_of_iterations=20)
+#
+# test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10,
+#                                     num_of_iterations=20)
 # test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10, num_of_iterations=10)

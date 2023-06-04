@@ -91,6 +91,7 @@ island_map = IslandMap(island_map, delivery_coords, with_buildable_plan=True)
 # print(random_two)
 
 max_bridge_length = 18
+print("buildable_coords len: {}".format(len(buildable_coords)))
 
 performance_control = PerformanceControl()
 
@@ -117,7 +118,7 @@ for r in robots_courier:
 
 task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui, building_algorithm=GRAPH_BASED_ALG)
 # task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui)
-task_planner.plan_and_execute_tasks()
+# task_planner.plan_and_execute_tasks()
 
 steps_amount = performance_control.get_steps_count()
 
