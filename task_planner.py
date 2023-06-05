@@ -97,22 +97,22 @@ class TaskPlanner:
         while not is_global_goal_achieved:
             print('Is global goal achieved: {}'.format(is_global_goal_achieved))
             free_robots_courier = self.get_free_robots_courier()
-            print('Free robots courier: {}'.format(free_robots_courier))
+            # print('Free robots courier: {}'.format(free_robots_courier))
 
             for rc in free_robots_courier:
-                print('Free delivery coords: {}'.format(free_delivery_coords))
+                # print('Free delivery coords: {}'.format(free_delivery_coords))
                 # nearest_free_delivery_coords = rc.find_nearest_delivery(free_delivery_coords)
                 nearest_free_delivery_coords = rc.find_nearest_delivery_by_reachability(
                     free_delivery_coords) if self.delivery_algorithm == REACHABILITY_ALG else rc.find_nearest_delivery(
                     free_delivery_coords)
-                print('Nearest free delivery coords: {}'.format(nearest_free_delivery_coords))
+                # print('Nearest free delivery coords: {}'.format(nearest_free_delivery_coords))
                 if nearest_free_delivery_coords:
                     options = {'delivery_coords': nearest_free_delivery_coords}
                     new_task = Task(DELIVERY_TASK_TYPE, rc, options=options, priority=DELIVERY_TASK_PRIORITY)
                     self.plan_task(new_task)
                     free_delivery_coords.remove(nearest_free_delivery_coords)
 
-            self.print_task_queue()
+            # self.print_task_queue()
 
             tasks_current = self.tasks.copy()
 

@@ -6,6 +6,14 @@ class PerformanceControl:
         self.steps_count = 0
         self.courier_robot_operations_cost_sum = 0
         self.builder_robot_operations_cost_sum = 0
+        self.bridge_num = 0
+        self.bridge_total_length = 0
+
+    def increase_bridge_num(self):
+        self.bridge_num += 1
+
+    def increase_bridge_total_length(self, bridge_length):
+        self.bridge_total_length += bridge_length
 
     def increase_operation_cost_sum(self, cost, robot_type):
         if robot_type == COURIER_ROBOT:

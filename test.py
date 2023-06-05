@@ -13,6 +13,8 @@ from robot_builder_controller import RobotBuilderController
 from robot_courier_controller import RobotCourierController
 from task_planner import TaskPlanner
 from scipy.stats import f_oneway
+from datetime import datetime
+import time
 
 
 def generate_island_map():
@@ -135,16 +137,15 @@ def generate_robot_points(island_map, N, delivery_coords=None, forbidden_coords=
     return robot_points
 
 
-def plot_result(delivery_points_nums, test_results_greedy, test_results_graph, title=None, xlabel=None, ylabel=None):
-    plt.plot(delivery_points_nums, test_results_greedy, label="greedy", marker='o')  # Построение графика
-    plt.plot(delivery_points_nums, test_results_graph, label="graph", marker='o')  # Построение графика
-
-    # plt.plot(delivery_points_nums, test_results_greedy, label="default", marker='o')  # Построение графика
-    # plt.plot(delivery_points_nums, test_results_graph, label="modified", marker='o')  # Построение графика
+def plot_result(x, y_greedy, y_graph, title=None, xlabel=None, ylabel=None, with_saving=False):
+    plt.plot(x, y_greedy, label="greedy", marker='o')
+    plt.plot(x, y_graph, label="graph", marker='o')
 
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+
+    plt.xticks(x)
 
     # Создание легенды
     plt.legend()
@@ -153,9 +154,13 @@ def plot_result(delivery_points_nums, test_results_greedy, test_results_graph, t
 
     plt.show()  # Отображение графика
 
+    if with_saving:
+        plt.savefig(f'images/{title}.png')
+
 
 def get_performance(island_map_coords, current_buildable_coords, current_delivery_points, robots_builder_points,
                     robots_courier_points, with_buildable_plan=False):
+    start_time = time.time()
     island_map = IslandMap(island_map_coords, current_delivery_points.copy(), with_buildable_plan=with_buildable_plan)
     # island_map = IslandMap(island_map_coords, current_delivery_points.copy(), with_buildable_plan=True)
     width = len(island_map_coords)
@@ -192,15 +197,17 @@ def get_performance(island_map_coords, current_buildable_coords, current_deliver
     robots_courier_operations_cost = performance_control.courier_robot_operations_cost_sum / len(robots_courier_points)
     robots_builder_operations_cost = performance_control.builder_robot_operations_cost_sum / len(robots_builder_points)
 
-    return steps_amount, robots_courier_operations_cost, robots_builder_operations_cost
+    end_time = time.time()
 
-
-''' меняем итерационно количество пар роботов. их положение фиксировано. пололжение точек доставки фиксировано '''
+    execution_time = end_time - start_time
+    return steps_amount, robots_courier_operations_cost, robots_builder_operations_cost, execution_time
 
 
 def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, delivery_points_initial=None,
                       num_of_delivery_points=10):
-    island_map_coords_reversed = list(map(list, zip(*[row[:] for row in island_map_coords])))
+    ''' меняем итерационно количество пар роботов. их положение фиксировано. пололжение точек доставки фиксировано '''
+
+    island_map_coords_reversed = np.transpose(island_map_coords)
     delivery_points = delivery_points_initial or generate_point_pairs(island_map_coords_reversed,
                                                                       num_of_delivery_points)
     print(delivery_points)
@@ -224,6 +231,9 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
     test_results_couriers_graph = []
     test_results_builders_graph = []
 
+    time_total_greedy = []
+    time_total_graph = []
+
     for current_num_of_pairs in range(1, num_of_pairs + 1):
         current_delivery_points = delivery_points.copy()
         current_buildable_coords = buildable_coords.copy()
@@ -236,12 +246,12 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
         print('curr_robots_builder_points: {}'.format(curr_robots_builder_points))
         print('curr_robots_courier_points: {}'.format(curr_robots_courier_points))
 
-        performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy, = get_performance(
+        performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy, execution_time_greedy = get_performance(
             island_map_coords, current_buildable_coords.copy(),
             current_delivery_points.copy(),
             curr_robots_builder_points.copy(), curr_robots_courier_points.copy())
 
-        performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph, = get_performance(
+        performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph, execution_time_graph = get_performance(
             island_map_coords, current_buildable_coords.copy(),
             current_delivery_points.copy(),
             curr_robots_builder_points.copy(), curr_robots_courier_points.copy(),
@@ -255,6 +265,9 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
 
         test_results_greedy.append(performance_greedy)
         test_results_graph.append(performance_graph)
+
+        time_total_greedy.append(execution_time_greedy)
+        time_total_graph.append(execution_time_graph)
 
         num_of_pairs_arr.append(current_num_of_pairs)
 
@@ -294,6 +307,10 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
         "graph": {
             "courier": test_results_couriers_graph,
             "builder": test_results_builders_graph,
+        },
+        "time": {
+            "time_total_greedy": time_total_greedy,
+            "time_total_graph": time_total_graph,
         }
     }
 
@@ -309,19 +326,12 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
     return test_results_greedy, test_results_graph, num_of_pairs_arr, robots_results
 
 
-''' меняем итеративно только количество точек доставки. их положение фиксировано. пололжение роботов фиксировано '''
-
-
 def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_builder_points_initial=None,
                                 robots_courier_points_initial=None, delivery_points_initial=None,
                                 num_of_delivery_points=20, num_of_pairs=2):
-    island_map_coords_reversed = list(map(list, zip(*[row[:] for row in island_map_coords])))
+    island_map_coords_reversed = np.transpose(island_map_coords)
+    ''' меняем итеративно только количество точек доставки. их положение фиксировано. пололжение роботов фиксировано '''
 
-    # delivery_points = delivery_points_initial or generate_point_pairs(island_map_coords_reversed,
-    #                                                                   num_of_delivery_points, forbidden_points=np.array(
-    #         np.concatenate(robots_builder_points_initial, robots_courier_points_initial)))
-
-    delivery_points = []
     print('robots_builder_points_initial: {}'.format(robots_builder_points_initial))
     print('robots_courier_points_initial: {}'.format(robots_courier_points_initial))
     robots_coords = None
@@ -353,6 +363,9 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
     test_results_couriers_graph = []
     test_results_builders_graph = []
 
+    time_total_greedy = []
+    time_total_graph = []
+
     for i in range(1, len(delivery_points) + 1):
         current_delivery_points = delivery_points[:i]
         current_buildable_coords = buildable_coords.copy()
@@ -362,12 +375,12 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
 
         print(robots_courier_points)
 
-        performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy = get_performance(
+        performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy, execution_time_greedy = get_performance(
             island_map_coords, current_buildable_coords.copy(),
             current_delivery_points.copy(),
             robots_builder_points, robots_courier_points)
 
-        performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph = get_performance(
+        performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph, execution_time_graph = get_performance(
             island_map_coords, current_buildable_coords.copy(),
             current_delivery_points.copy(),
             robots_builder_points, robots_courier_points, with_buildable_plan=True)
@@ -380,6 +393,9 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
 
         test_results_greedy.append(performance_greedy)
         test_results_graph.append(performance_graph)
+
+        time_total_greedy.append(execution_time_greedy)
+        time_total_graph.append(execution_time_graph)
 
         delivery_points_nums.append(len(current_delivery_points))
         print("final performance greedy: {}".format(performance_greedy))
@@ -418,6 +434,10 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
         "graph": {
             "courier": test_results_couriers_graph,
             "builder": test_results_builders_graph,
+        },
+        "time": {
+            "time_total_greedy": time_total_greedy,
+            "time_total_graph": time_total_graph,
         }
     }
 
@@ -433,20 +453,23 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
     return test_results_greedy, test_results_graph, delivery_points_nums, robots_results
 
 
-def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of_delivery_points, num_of_iterations):
-    result_test_greedy = []
-    result_test_graph = []
-    num_of_pairs_arr_result = None
-
-    island_map_coords_reversed = list(map(list, zip(*[row[:] for row in island_map])))
+def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of_delivery_points, num_of_iterations=1):
+    island_map_coords_reversed = np.transpose(island_map)
 
     delivery_points = generate_point_pairs(island_map_coords_reversed, num_of_delivery_points)
+
+    result_test_greedy = []
+    result_test_graph = []
+    num_of_pairs_arr_result = []
 
     result_test_courier_greedy = []
     result_test_builder_greedy = []
 
     result_test_courier_graph = []
     result_test_builder_graph = []
+
+    result_time_greedy = []
+    result_time_graph = []
 
     num_of_iterations_max = num_of_iterations + 15
 
@@ -478,6 +501,9 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
             result_test_courier_graph.append(robots_results["graph"]["courier"])
             result_test_builder_graph.append(robots_results["graph"]["builder"])
 
+            result_time_greedy.append(robots_results["time"]["time_total_greedy"])
+            result_time_graph.append(robots_results["time"]["time_total_graph"])
+
             num_of_pairs_arr_result = num_of_pairs_arr.copy()
             success_count += 1
         except Exception as e:
@@ -506,6 +532,9 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
     final_result_test_courier_graph = np.mean(result_test_courier_graph, axis=0)
     final_result_test_builder_graph = np.mean(result_test_builder_graph, axis=0)
 
+    final_result_time_greedy = np.mean(result_time_greedy, axis=0)
+    final_result_time_graph = np.mean(result_time_graph, axis=0)
+
     print('final_result_test_greedy: {}'.format(final_result_test_greedy))
     print('final_result_test_graph: {}'.format(final_result_test_graph))
     print('num_of_pairs_arr_result: {}'.format(num_of_pairs_arr_result))
@@ -520,53 +549,90 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
         num_of_delivery_points, num_of_iterations)
     xlabel = 'Количество пар роботов'
     ylabel = 'Сумма стоимости всех операций системы'
-    plot_result(num_of_pairs_arr_result, final_result_test_greedy, final_result_test_graph, title, xlabel, ylabel)
+    plot_result(num_of_pairs_arr_result, final_result_test_greedy, final_result_test_graph, title, xlabel, ylabel,
+                with_saving=True)
 
-    title = '{} пар роботов-курьеров, {} итераций, {} точек доставки'.format(
-        num_of_pairs, num_of_iterations, num_of_delivery_points)
+    title = 'Время выполнения для {} точек доставки для {} итераций '.format(
+        num_of_delivery_points, num_of_iterations)
+    xlabel = 'Количество пар роботов'
+    ylabel = 'Время выполнения'
+    plot_result(num_of_pairs_arr_result, final_result_time_greedy, final_result_time_graph, title, xlabel, ylabel,
+                with_saving=True)
+
+    title = '{} роботов-курьеров, {} точек доставки, {} итераций'.format(
+        num_of_pairs, num_of_delivery_points, num_of_iterations)
     xlabel = 'Количество пар роботов'
     ylabel = 'Средяя стоимость операций'
     plot_result(num_of_pairs_arr_result, final_result_test_courier_greedy, final_result_test_courier_graph, title,
                 xlabel,
-                ylabel)
+                ylabel, with_saving=True)
 
-    title = '{} пар роботов-строителей, {} итераций, {} точек доставки'.format(
-        num_of_pairs, num_of_iterations, num_of_delivery_points)
+    title = '{} роботов-строителей, {} точек доставки, {} итераций'.format(
+        num_of_pairs, num_of_delivery_points, num_of_iterations)
     xlabel = 'Количество пар роботов'
     ylabel = 'Средяя стоимость операций'
     plot_result(num_of_pairs_arr_result, final_result_test_builder_greedy, final_result_test_builder_graph, title,
                 xlabel,
-                ylabel)
+                ylabel, with_saving=True)
 
-    # Примените однофакторный ANOVA
-    statistics_greedy, p_value_greedy = f_oneway(*result_test_greedy)
-    statistics_graph, p_value_graph = f_oneway(*result_test_graph)
+    anova_results = {}
+    if num_of_iterations > 1:
+        # Примените однофакторный ANOVA
+        statistics_greedy, p_value_greedy = f_oneway(*result_test_greedy)
+        statistics_graph, p_value_graph = f_oneway(*result_test_graph)
 
-    statistics_courier_greedy, p_value_courier_greedy = f_oneway(*result_test_courier_greedy)
-    statistics_builder_greedy, p_value_builder_greedy = f_oneway(*result_test_builder_greedy)
+        statistics_courier_greedy, p_value_courier_greedy = f_oneway(*result_test_courier_greedy)
+        statistics_builder_greedy, p_value_builder_greedy = f_oneway(*result_test_builder_greedy)
 
-    statistics_courier_graph, p_value_courier_graph = f_oneway(*result_test_courier_graph)
-    statistics_builder_graph, p_value_builder_graph = f_oneway(*result_test_builder_graph)
+        statistics_courier_graph, p_value_courier_graph = f_oneway(*result_test_courier_graph)
+        statistics_builder_graph, p_value_builder_graph = f_oneway(*result_test_builder_graph)
 
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_greedy:", statistics_greedy)
-    print("p-value greedy:", p_value_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_graph:", statistics_graph)
-    print("p-value graph:", p_value_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_courier_greedy:", statistics_courier_greedy)
-    print("p_value_courier_greedy:", p_value_courier_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_builder_greedy:", statistics_builder_greedy)
-    print("p_value_builder_greedy:", p_value_builder_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_courier_graph:", statistics_courier_graph)
-    print("p_value_courier_graph:", p_value_courier_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_builder_graph:", statistics_builder_graph)
-    print("p_value_builder_graph:", p_value_builder_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_greedy:", statistics_greedy)
+        print("p-value greedy:", p_value_greedy)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_graph:", statistics_graph)
+        print("p-value graph:", p_value_graph)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_courier_greedy:", statistics_courier_greedy)
+        print("p_value_courier_greedy:", p_value_courier_greedy)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_builder_greedy:", statistics_builder_greedy)
+        print("p_value_builder_greedy:", p_value_builder_greedy)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_courier_graph:", statistics_courier_graph)
+        print("p_value_courier_graph:", p_value_courier_graph)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_builder_graph:", statistics_builder_graph)
+        print("p_value_builder_graph:", p_value_builder_graph)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+
+        anova_results = {
+            "greedy": {
+                "statistics_greedy": statistics_greedy,
+                "p_value_greedy": p_value_greedy,
+            },
+            "graph": {
+                "statistics_graph": statistics_graph,
+                "p_value_graph": p_value_graph,
+            },
+            "courier_greedy": {
+                "statistics_courier_greedy": statistics_courier_greedy,
+                "p_value_courier_greedy": p_value_courier_greedy,
+            },
+            "builder_greedy": {
+                "statistics_builder_greedy": statistics_builder_greedy,
+                "p_value_builder_greedy": p_value_builder_greedy,
+            },
+            "courier_graph": {
+                "statistics_courier_graph": statistics_courier_graph,
+                "p_value_courier_graph": p_value_courier_graph,
+            },
+            "builder_graph": {
+                "statistics_builder_greedy": statistics_builder_graph,
+                "p_value_builder_graph": p_value_builder_graph,
+            },
+        }
 
     performance_increase = [((graph - greedy) / greedy) * 100 for graph, greedy in
                             zip(final_result_test_graph, final_result_test_greedy)]
@@ -589,56 +655,53 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
     print('-------------------------------------------------')
 
     test_num_of_pairs_result = {
+        "num_of_pairs_arr_result": num_of_pairs_arr_result,
+
+        "final_result_test_greedy": final_result_test_greedy.tolist(),
+        "final_result_test_graph": final_result_test_graph.tolist(),
+        "final_result_test_courier_greedy": final_result_test_courier_greedy.tolist(),
+        "final_result_test_builder_greedy": final_result_test_builder_greedy.tolist(),
+        "final_result_test_courier_graph": final_result_test_courier_graph.tolist(),
+        "final_result_test_builder_graph": final_result_test_builder_graph.tolist(),
+        "final_result_time_greedy": final_result_time_greedy.tolist(),
+        "final_result_time_graph": final_result_time_graph.tolist(),
+
+        "result_test_greedy": result_test_greedy,
+        "result_test_graph": result_test_graph,
+        "result_test_courier_greedy": result_test_courier_greedy,
+        "result_test_builder_greedy": result_test_builder_greedy,
+        "result_test_courier_graph": result_test_courier_graph,
+        "result_test_builder_graph": result_test_builder_graph,
         "performance_increase_percent": performance_increase_percent,
         "performance_increase_percent_courier": performance_increase_percent_courier,
         "performance_increase_percent_builder": performance_increase_percent_builder,
-        "greedy": {
-            "statistics_greedy": statistics_greedy,
-            "p_value_greedy": p_value_greedy,
-        },
-        "graph": {
-            "statistics_graph": statistics_graph,
-            "p_value_graph": p_value_graph,
-        },
-        "courier_greedy": {
-            "statistics_courier_greedy": statistics_courier_greedy,
-            "p_value_courier_greedy": p_value_courier_greedy,
-        },
-        "builder_greedy": {
-            "statistics_builder_greedy": statistics_builder_greedy,
-            "p_value_builder_greedy": p_value_builder_greedy,
-        },
-        "courier_graph": {
-            "statistics_courier_graph": statistics_courier_graph,
-            "p_value_courier_graph": p_value_courier_graph,
-        },
-        "builder_graph": {
-            "statistics_builder_greedy": statistics_builder_graph,
-            "p_value_builder_graph": p_value_builder_graph,
-        },
+        "anova_results": anova_results,
+        "result_time_greedy": result_time_greedy,
+        "result_time_graph": result_time_graph,
     }
 
-    with open("test_num_of_pairs_result.json", "w") as file:
-        json.dump(test_num_of_pairs_result, file)
+    return test_num_of_pairs_result
 
 
 def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pairs, num_of_delivery_points,
-                                        num_of_iterations):
-    result_test_greedy = []
-    result_test_graph = []
-    delivery_points_nums_result = None
-
-    island_map_coords_reversed = list(map(list, zip(*[row[:] for row in island_map])))
+                                        num_of_iterations, num_of_attempt=None):
+    island_map_coords_reversed = np.transpose(island_map)
 
     robots_builder_coords = generate_robot_points(island_map_coords_reversed, num_of_pairs)
     robots_courier_coords = generate_robot_points(island_map_coords_reversed, num_of_pairs,
                                                   forbidden_coords=robots_builder_coords)
+    result_test_greedy = []
+    result_test_graph = []
+    delivery_points_nums_result = []
 
     result_test_courier_greedy = []
     result_test_builder_greedy = []
 
     result_test_courier_graph = []
     result_test_builder_graph = []
+
+    result_time_greedy = []
+    result_time_graph = []
 
     num_of_iterations_max = num_of_iterations + 20
 
@@ -669,6 +732,9 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
 
             result_test_courier_graph.append(robots_results["graph"]["courier"])
             result_test_builder_graph.append(robots_results["graph"]["builder"])
+
+            result_time_greedy.append(robots_results["time"]["time_total_greedy"])
+            result_time_graph.append(robots_results["time"]["time_total_graph"])
 
             delivery_points_nums_result = delivery_points_nums.copy()
             success_count += 1
@@ -707,6 +773,9 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
     final_result_test_courier_graph = np.mean(result_test_courier_graph, axis=0)
     final_result_test_builder_graph = np.mean(result_test_builder_graph, axis=0)
 
+    final_result_time_greedy = np.mean(result_time_greedy, axis=0)
+    final_result_time_graph = np.mean(result_time_graph, axis=0)
+
     print('final_result_test_greedy: {}'.format(final_result_test_greedy))
     print('final_result_test_graph: {}'.format(final_result_test_graph))
     print('delivery_points_nums_result: {}'.format(delivery_points_nums_result))
@@ -721,58 +790,95 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
         num_of_pairs, num_of_iterations)
     xlabel = 'Количество точек доставки'
     ylabel = 'Сумма стоимости всех операций системы'
-    plot_result(delivery_points_nums_result, final_result_test_greedy, final_result_test_graph, title, xlabel, ylabel)
+    plot_result(delivery_points_nums_result, final_result_test_greedy, final_result_test_graph, title, xlabel, ylabel,
+                with_saving=True)
 
-    title = '{} пар роботов-курьеров, {} итераций, {} точек доставки'.format(
-        num_of_pairs, num_of_iterations, num_of_delivery_points)
+    title = 'Время выполнения для {} пар роботов для {} итераций '.format(
+        num_of_pairs, num_of_iterations)
+    xlabel = 'Количество точек доставки'
+    ylabel = 'Время выполнения'
+    plot_result(delivery_points_nums_result, final_result_time_greedy, final_result_time_graph, title, xlabel, ylabel,
+                with_saving=True)
+
+    title = '{} роботов-курьеров, {} точек доставки, {} итераций'.format(
+        num_of_pairs, num_of_delivery_points, num_of_iterations)
     xlabel = 'Количество точек доставки'
     ylabel = 'Средяя стоимость операций'
     plot_result(delivery_points_nums_result, final_result_test_courier_greedy, final_result_test_courier_graph, title,
                 xlabel,
-                ylabel)
+                ylabel, with_saving=True)
 
-    title = '{} пар роботов-строителей, {} итераций, {} точек доставки'.format(
-        num_of_pairs, num_of_iterations, num_of_delivery_points)
+    title = '{} роботов-строителей, {} точек доставки, {} итераций'.format(
+        num_of_pairs, num_of_delivery_points, num_of_iterations)
     xlabel = 'Количество точек доставки'
     ylabel = 'Средяя стоимость операций'
     plot_result(delivery_points_nums_result, final_result_test_builder_greedy, final_result_test_builder_graph, title,
                 xlabel,
-                ylabel)
+                ylabel, with_saving=True)
 
-    # Примените однофакторный ANOVA
-    statistics_greedy, p_value_greedy = f_oneway(*result_test_greedy)
-    statistics_graph, p_value_graph = f_oneway(*result_test_graph)
+    anova_results = {}
+    if num_of_iterations > 1:
+        # Примените однофакторный ANOVA
+        statistics_greedy, p_value_greedy = f_oneway(*result_test_greedy)
+        statistics_graph, p_value_graph = f_oneway(*result_test_graph)
 
-    statistics_courier_greedy, p_value_courier_greedy = f_oneway(*result_test_courier_greedy)
-    statistics_builder_greedy, p_value_builder_greedy = f_oneway(*result_test_builder_greedy)
+        statistics_courier_greedy, p_value_courier_greedy = f_oneway(*result_test_courier_greedy)
+        statistics_builder_greedy, p_value_builder_greedy = f_oneway(*result_test_builder_greedy)
 
-    statistics_courier_graph, p_value_courier_graph = f_oneway(*result_test_courier_graph)
-    statistics_builder_graph, p_value_builder_graph = f_oneway(*result_test_builder_graph)
+        statistics_courier_graph, p_value_courier_graph = f_oneway(*result_test_courier_graph)
+        statistics_builder_graph, p_value_builder_graph = f_oneway(*result_test_builder_graph)
 
-    statistics_total, p_value_total = f_oneway(*[final_result_test_greedy, final_result_test_graph])
+        statistics_total, p_value_total = f_oneway(*[final_result_test_greedy, final_result_test_graph])
 
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_total:", statistics_total)
-    print("p-value total:", p_value_total)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_greedy:", statistics_greedy)
-    print("p-value greedy:", p_value_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_graph:", statistics_graph)
-    print("p-value graph:", p_value_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_courier_greedy:", statistics_courier_greedy)
-    print("p_value_courier_greedy:", p_value_courier_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_builder_greedy:", statistics_builder_greedy)
-    print("p_value_builder_greedy:", p_value_builder_greedy)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_courier_graph:", statistics_courier_graph)
-    print("p_value_courier_graph:", p_value_courier_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
-    print("ANOVA statistics_builder_graph:", statistics_builder_graph)
-    print("p_value_builder_graph:", p_value_builder_graph)
-    print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_total:", statistics_total)
+        print("p-value total:", p_value_total)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_greedy:", statistics_greedy)
+        print("p-value greedy:", p_value_greedy)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_graph:", statistics_graph)
+        print("p-value graph:", p_value_graph)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_courier_greedy:", statistics_courier_greedy)
+        print("p_value_courier_greedy:", p_value_courier_greedy)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_builder_greedy:", statistics_builder_greedy)
+        print("p_value_builder_greedy:", p_value_builder_greedy)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_courier_graph:", statistics_courier_graph)
+        print("p_value_courier_graph:", p_value_courier_graph)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+        print("ANOVA statistics_builder_graph:", statistics_builder_graph)
+        print("p_value_builder_graph:", p_value_builder_graph)
+        print('++++++++++++++++++++++++++++++++++++++++++++++++')
+
+        anova_results = {
+            "greedy": {
+                "statistics_greedy": statistics_greedy,
+                "p_value_greedy": p_value_greedy,
+            },
+            "graph": {
+                "statistics_graph": statistics_graph,
+                "p_value_graph": p_value_graph,
+            },
+            "courier_greedy": {
+                "statistics_courier_greedy": statistics_courier_greedy,
+                "p_value_courier_greedy": p_value_courier_greedy,
+            },
+            "builder_greedy": {
+                "statistics_builder_greedy": statistics_builder_greedy,
+                "p_value_builder_greedy": p_value_builder_greedy,
+            },
+            "courier_graph": {
+                "statistics_courier_graph": statistics_courier_graph,
+                "p_value_courier_graph": p_value_courier_graph,
+            },
+            "builder_graph": {
+                "statistics_builder_greedy": statistics_builder_graph,
+                "p_value_builder_graph": p_value_builder_graph,
+            },
+        }
 
     # Выполните аппроксимацию линейной функцией для каждого графика
     coeffs_greedy = np.polyfit(delivery_points_nums_result, final_result_test_greedy,
@@ -832,6 +938,23 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
     print('-------------------------------------------------')
 
     test_num_of_delivery_points_result = {
+        "delivery_points_nums_result": delivery_points_nums_result,
+
+        "final_result_test_greedy": final_result_test_greedy.tolist(),
+        "final_result_test_graph": final_result_test_graph.tolist(),
+        "final_result_test_courier_greedy": final_result_test_courier_greedy.tolist(),
+        "final_result_test_builder_greedy": final_result_test_builder_greedy.tolist(),
+        "final_result_test_courier_graph": final_result_test_courier_graph.tolist(),
+        "final_result_test_builder_graph": final_result_test_builder_graph.tolist(),
+        "final_result_time_greedy": final_result_time_greedy.tolist(),
+        "final_result_time_graph": final_result_time_graph.tolist(),
+
+        "result_test_greedy": result_test_greedy,
+        "result_test_graph": result_test_graph,
+        "result_test_courier_greedy": result_test_courier_greedy,
+        "result_test_builder_greedy": result_test_builder_greedy,
+        "result_test_courier_graph": result_test_courier_graph,
+        "result_test_builder_graph": result_test_builder_graph,
         "performance_increase_percent": performance_increase_percent,
         "performance_increase_percent_courier": performance_increase_percent_courier,
         "performance_increase_percent_builder": performance_increase_percent_builder,
@@ -847,34 +970,15 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
                 "slope_builder_graph": slope_builder_graph,
             }
         },
-        "greedy": {
-            "statistics_greedy": statistics_greedy,
-            "p_value_greedy": p_value_greedy,
-        },
-        "graph": {
-            "statistics_graph": statistics_graph,
-            "p_value_graph": p_value_graph,
-        },
-        "courier_greedy": {
-            "statistics_courier_greedy": statistics_courier_greedy,
-            "p_value_courier_greedy": p_value_courier_greedy,
-        },
-        "builder_greedy": {
-            "statistics_builder_greedy": statistics_builder_greedy,
-            "p_value_builder_greedy": p_value_builder_greedy,
-        },
-        "courier_graph": {
-            "statistics_courier_graph": statistics_courier_graph,
-            "p_value_courier_graph": p_value_courier_graph,
-        },
-        "builder_graph": {
-            "statistics_builder_greedy": statistics_builder_graph,
-            "p_value_builder_graph": p_value_builder_graph,
-        },
+        "anova_results": anova_results,
+        "result_time_greedy": result_time_greedy,
+        "result_time_graph": result_time_graph,
     }
 
-    with open("test_num_of_delivery_points_result.json", "w") as file:
-        json.dump(test_num_of_delivery_points_result, file)
+    return test_num_of_delivery_points_result
+
+    # with open("test_num_of_delivery_points_result.json", "w") as file:
+    #     json.dump(test_num_of_delivery_points_result, file)
 
 
 def plot_3d_surface_result(x, y, z, title=None, xlabel=None, ylabel=None, zlabel=None):
@@ -906,11 +1010,11 @@ def plot_3d_surface_result(x, y, z, title=None, xlabel=None, ylabel=None, zlabel
     ax1.set_title(title)
 
     plt.show()
+    plt.savefig(f'images/surface-{title}.png')
 
 
-def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_of_delivery_points,
-                               num_of_iterations):
-    island_map_coords_reversed = list(map(list, zip(*[row[:] for row in island_map])))
+def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_of_delivery_points):
+    island_map_coords_reversed = np.transpose(island_map)
 
     delivery_points = generate_point_pairs(island_map_coords_reversed, num_of_delivery_points)
 
@@ -932,6 +1036,9 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
     result_num_of_delivery_points = []
     result_num_of_pairs = []
 
+    result_time_greedy = []
+    result_time_graph = []
+
     for curr_num_delivery_points in range(1, num_of_delivery_points + 1):
 
         curr_result_performance_greedy = []
@@ -942,6 +1049,9 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
 
         curr_result_test_courier_graph = []
         curr_result_test_builder_graph = []
+
+        curr_result_time_greedy = []
+        curr_result_time_graph = []
 
         for curr_num_pairs in range(1, num_of_pairs + 1):
             current_delivery_points = delivery_points[:curr_num_delivery_points]
@@ -954,12 +1064,12 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
             print('CURRENT NUM OF DELIVERY POINTS: {}'.format(curr_num_delivery_points))
             print('CURRENT NUM OF PAIRS: {}'.format(curr_num_pairs))
 
-            performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy = get_performance(
+            performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy, execution_time_greedy = get_performance(
                 island_map, current_buildable_coords.copy(),
                 current_delivery_points.copy(),
                 robots_builder_points=curr_robots_builder_points, robots_courier_points=curr_robots_courier_points)
 
-            performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph = get_performance(
+            performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph, execution_time_graph = get_performance(
                 island_map, current_buildable_coords.copy(),
                 current_delivery_points.copy(),
                 robots_builder_points=curr_robots_builder_points,
@@ -974,6 +1084,9 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
             curr_result_test_courier_graph.append(couriers_operations_cost_graph)
             curr_result_test_builder_graph.append(builders_operations_cost_graph)
 
+            curr_result_time_greedy.append(execution_time_greedy)
+            curr_result_time_graph.append(execution_time_graph)
+
             if curr_num_delivery_points == 1:
                 result_num_of_pairs.append(curr_num_pairs)
 
@@ -985,6 +1098,9 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
 
         result_test_courier_graph.append(curr_result_test_courier_graph)
         result_test_builder_graph.append(curr_result_test_builder_graph)
+
+        result_time_greedy.append(curr_result_time_greedy)
+        result_time_graph.append(curr_result_time_graph)
 
         result_num_of_delivery_points.append(curr_num_delivery_points)
 
@@ -1001,75 +1117,263 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
     print("result_test_builder_graph: {}".format(result_test_builder_graph))
 
     # Поверхность для жадного алгоритма
-    xlabel = 'Num of pairs'
-    ylabel = 'Num of Delivery points'
-    zlabel = 'Total operation cost'
-    title = 'Surface for GREEDY algorithm'
+    xlabel = 'Количество пар'
+    ylabel = 'Количество точек доставки'
+    zlabel = 'Стоимость всех операций'
+    title = 'Поверхность для жадного алгоритма'
     plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_performance_greedy, title=title,
                            xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
 
     # Поверхность для алгоритма на графах
-    xlabel = 'Num of pairs'
-    ylabel = 'Num of Delivery points'
-    zlabel = 'Total operation cost'
-    title = 'Surface for GRAPH algorithm'
+    xlabel = 'Количество пар'
+    ylabel = 'Количество точек доставки'
+    zlabel = 'Стоимость всех операций'
+    title = 'Поверхность для алгоритма на графах'
     plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_performance_graph, title=title,
                            xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
 
     # Поверхность для жадного алгоритма (роботы-курьреры)
-    xlabel = 'Num of pairs'
-    ylabel = 'Num of Delivery points'
-    zlabel = 'Average operation cost'
-    title = 'Surface for GREEDY algorithm couriers'
+    xlabel = 'Количество пар'
+    ylabel = 'Количество точек доставки'
+    zlabel = 'Средняя стоимость операций'
+    title = 'Поверхность для жадного алгоритма для доставщиков'
     plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_test_courier_greedy, title=title,
                            xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
 
     # Поверхность для алгоритма на графах (роботы-курьеры)
-    xlabel = 'Num of pairs'
-    ylabel = 'Num of Delivery points'
-    zlabel = 'Average operation cost'
-    title = 'Surface for GRAPH algorithm couriers'
+    xlabel = 'Количество пар'
+    ylabel = 'Количество точек доставки'
+    zlabel = 'Средняя стоимость операций'
+    title = 'Поверхность для алгоритма на графах для доставщиков'
     plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_test_courier_graph, title=title,
                            xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
 
     # Поверхность для жадного алгоритма (роботы-строители)
-    xlabel = 'Num of pairs'
-    ylabel = 'Num of Delivery points'
-    zlabel = 'Average operation cost'
-    title = 'Surface for GREEDY algorithm builders'
+    xlabel = 'Количество пар'
+    ylabel = 'Количество точек доставки'
+    zlabel = 'Средняя стоимость операций'
+    title = 'Поверхность для жадного алгоритма для строителей'
     plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_test_builder_greedy, title=title,
                            xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
 
     # Поверхность для алгоритма на графах (роботы-строители)
-    xlabel = 'Num of pairs'
-    ylabel = 'Num of Delivery points'
-    zlabel = 'Average operation cost'
-    title = 'Surface for GRAPH algorithm builders'
+    xlabel = 'Количество пар'
+    ylabel = 'Количество точек доставки'
+    zlabel = 'Средняя стоимость операций'
+    title = 'Поверхность для алгоритма на графах для строителей'
     plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_test_builder_graph, title=title,
                            xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
 
+    # Поверхность для алгоритма на графах времени исполнения
+    xlabel = 'Количество пар'
+    ylabel = 'Количество точек доставки'
+    zlabel = 'Время выполнения'
+    title = 'Поверхность времени выполнения для жадного алгоритма'
+    plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_time_greedy, title=title,
+                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
 
-island_map, buildable_coords = generate_island_map()
+    # Поверхность для алгоритма на графах времени исполнения
+    xlabel = 'Количество пар'
+    ylabel = 'Количество точек доставки'
+    zlabel = 'Время выполнения'
+    title = 'Поверхность времени выполнения для алгоритма на графах'
+    plot_3d_surface_result(result_num_of_pairs, result_num_of_delivery_points, result_time_graph, title=title,
+                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
 
-test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs=14, num_of_delivery_points=7,
-                           num_of_iterations=1)
+    results = {
+        "result_num_of_delivery_points": result_num_of_delivery_points,
+        "result_num_of_pairs": result_num_of_pairs,
+        "result_performance_greedy": result_performance_greedy,
+        "result_performance_graph": result_performance_graph,
+        "result_test_courier_greedy": result_test_courier_greedy,
+        "result_test_builder_greedy": result_test_builder_greedy,
+        "result_test_courier_graph": result_test_courier_graph,
+        "result_test_builder_graph": result_test_builder_graph,
+        "result_time_greedy": result_time_greedy,
+        "result_time_graph": result_time_graph,
+    }
 
-# test_num_of_delivery_points(island_map, buildable_coords)
-# test_num_of_pairs(island_map, buildable_coords, 20)
+    return results
 
-# test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=10, num_of_delivery_points=5, num_of_iterations=3)
-# test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=20, num_of_delivery_points=10,
-#                           num_of_iterations=10)
 
-# test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=10, num_of_delivery_points=5,
-#                           num_of_iterations=1)
+def add_experiment_results(attempt_number, experiment_name, results):
+    # Загрузка существующих данных из файла JSON, если они есть
+    try:
+        with open("experiments_results.json", "r") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        data = {}
 
-# test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=4,
-#                                     num_of_iterations=5)
+    # Создание нового поля с номером попытки, если оно не существует
+    if f"attempt-{attempt_number}" not in data:
+        data[f"attempt-{attempt_number}"] = {}
 
-# test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs=20, num_of_delivery_points=10,
-#                           num_of_iterations=20)
-#
-# test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10,
-#                                     num_of_iterations=20)
-# test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_delivery_points=20, num_of_pairs=10, num_of_iterations=10)
+    # Добавление результатов эксперимента в поле номера попытки
+    data[f"attempt-{attempt_number}"][experiment_name] = results
+
+    # Сохранение данных в файл JSON
+    with open("experiments_results.json", "w") as file:
+        json.dump(data, file, indent=4)
+
+
+def get_num_of_attempt():
+    try:
+        with open('experiments_results.json', 'r') as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        data = {}
+
+    return len(data) + 1
+
+
+def save_island_map_options(attempt_number, island_map_options):
+    # Загрузка существующих данных из файла JSON, если они есть
+    try:
+        with open("island_map_options.json", "r") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        data = {}
+
+    # Создание нового поля с номером попытки, если оно не существует
+    if f"attempt-{attempt_number}" not in data:
+        data[f"attempt-{attempt_number}"] = {}
+
+    # Добавление результатов эксперимента в поле номера попытки
+    data[f"attempt-{attempt_number}"] = island_map_options
+
+    # Сохранение данных в файл JSON
+    with open("island_map_options.json", "w") as file:
+        json.dump(data, file, indent=4)
+
+
+def run_experiments():
+    island_map, buildable_coords = generate_island_map()
+
+    island_map = island_map.tolist()
+
+    island_map_options = {
+        "island_map": island_map,
+        "buildable_coords": buildable_coords,
+    }
+    attempt_number = get_num_of_attempt()
+
+    save_island_map_options(attempt_number, island_map_options)
+    # experiments = {
+    #     # "test_pairs_delivery_points-1": (test_pairs_delivery_points, {
+    #     #     "island_map": island_map,
+    #     #     "buildable_coords": buildable_coords,
+    #     #     "num_of_pairs": 10,
+    #     #     "num_of_delivery_points": 10,
+    #     # }),
+    #     "test_pairs_delivery_points": (test_pairs_delivery_points, {
+    #         "island_map": island_map,
+    #         "buildable_coords": buildable_coords,
+    #         "num_of_pairs": 5,
+    #         "num_of_delivery_points": 5,
+    #     }),
+    #     "test_num_of_pairs": (test_num_of_pairs_n_times, {
+    #         "island_map": island_map,
+    #         "buildable_coords": buildable_coords,
+    #         "num_of_pairs": 2,
+    #         "num_of_delivery_points": 2,
+    #         "num_of_iterations": 1,
+    #     }),
+    #     "test_num_of_delivery_points": (test_num_of_delivery_points_n_times, {
+    #         "island_map": island_map,
+    #         "buildable_coords": buildable_coords,
+    #         "num_of_delivery_points": 3,
+    #         "num_of_pairs": 2,
+    #         "num_of_iterations": 1
+    #     }),
+    #     "test_num_of_pairs_n_times": (test_num_of_pairs_n_times, {
+    #         "island_map": island_map,
+    #         "buildable_coords": buildable_coords,
+    #         "num_of_pairs": 2,
+    #         "num_of_delivery_points": 2,
+    #         "num_of_iterations": 3,
+    #     }),
+    #     "test_num_of_delivery_points_n_times": (test_num_of_delivery_points_n_times, {
+    #         "island_map": island_map,
+    #         "buildable_coords": buildable_coords,
+    #         "num_of_delivery_points": 2,
+    #         "num_of_pairs": 2,
+    #         "num_of_iterations": 3,
+    #     }),
+    # }
+    experiments = {
+        # "test_pairs_delivery_points-1": (test_pairs_delivery_points, {
+        #     "island_map": island_map,
+        #     "buildable_coords": buildable_coords,
+        #     "num_of_pairs": 10,
+        #     "num_of_delivery_points": 10,
+        # }),
+        "test_pairs_delivery_points": (test_pairs_delivery_points, {
+            "island_map": island_map,
+            "buildable_coords": buildable_coords,
+            "num_of_pairs": 20,
+            "num_of_delivery_points": 20,
+        }),
+        "test_num_of_pairs": (test_num_of_pairs_n_times, {
+            "island_map": island_map,
+            "buildable_coords": buildable_coords,
+            "num_of_pairs": 30,
+            "num_of_delivery_points": 20,
+            "num_of_iterations": 1,
+        }),
+        "test_num_of_delivery_points": (test_num_of_delivery_points_n_times, {
+            "island_map": island_map,
+            "buildable_coords": buildable_coords,
+            "num_of_delivery_points": 30,
+            "num_of_pairs": 20,
+            "num_of_iterations": 1
+        }),
+        "test_num_of_pairs_n_times": (test_num_of_pairs_n_times, {
+            "island_map": island_map,
+            "buildable_coords": buildable_coords,
+            "num_of_pairs": 20,
+            "num_of_delivery_points": 10,
+            "num_of_iterations": 20,
+        }),
+        "test_num_of_delivery_points_n_times": (test_num_of_delivery_points_n_times, {
+            "island_map": island_map,
+            "buildable_coords": buildable_coords,
+            "num_of_delivery_points": 20,
+            "num_of_pairs": 10,
+            "num_of_iterations": 20,
+        }),
+    }
+
+    for experiment_name, (experiment_func, experiment_args) in experiments.items():
+        is_experiment_successful = False
+        max_num_of_iterations = 3
+        i = 0
+        while not is_experiment_successful:
+            print(f"RUNNING EXPERIMENT '{experiment_name}' WITH PARAMETERS {experiment_args}")
+
+            if i >= max_num_of_iterations:
+                print(f"test iteration limit exceeded for '{experiment_name}'")
+                break
+
+            i += 1
+            try:
+                experiment_result = experiment_func(**experiment_args)
+                current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                parameters = experiment_args.copy()
+
+                parameters.pop("island_map")
+                parameters.pop("buildable_coords")
+
+                results = {
+                    "parameters": parameters,
+                    "date": current_datetime,
+                    "results": experiment_result,
+                }
+                add_experiment_results(attempt_number, experiment_name, results)
+                is_experiment_successful = True
+            except Exception as e:
+                print('--------------EXPERIMENT FAILED-----------------')
+                print('AN ERROR OCCURRED WHILE EXPERIMENT RUNNING: {}'.format(e))
+                print('EXPERIMENT NAME: {}'.format(experiment_name))
+                print('RESTARTING experiment {}...'.format(experiment_name))
+                print('------------------------------------------')

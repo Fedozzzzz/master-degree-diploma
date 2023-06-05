@@ -26,7 +26,7 @@ class RobotBuilderController(RobotController):
         island_end = self.map.get_island_by_coord(target_point)
         local_buildable_plan = self.map.get_local_buildable_plan(island_start, island_end)
         self.planned_bridges = local_buildable_plan
-        print('[plan_bridges] Planned bridges (local_buildable_plan): {}'.format(self.planned_bridges))
+        # print('[plan_bridges] Planned bridges (local_buildable_plan): {}'.format(self.planned_bridges))
 
     def divide_buildable_coords_by_reachability(self, buildable_coords):
         res_reachable = []
@@ -40,9 +40,9 @@ class RobotBuilderController(RobotController):
         return res_reachable, res_unreachable
 
     def build_bridge_graph_based(self, target_point):
-        print('[build_bridge_graph_based]: Build bridge to target point: {}'.format(target_point))
+        # print('[build_bridge_graph_based]: Build bridge to target point: {}'.format(target_point))
         is_exists_path_to_point = len(self.find_path(target_point)) > 0
-        print('[build_bridge_graph_based]: is_exists_path_to_point: {}'.format(is_exists_path_to_point))
+        # print('[build_bridge_graph_based]: is_exists_path_to_point: {}'.format(is_exists_path_to_point))
 
         if is_exists_path_to_point:
             return
@@ -73,10 +73,10 @@ class RobotBuilderController(RobotController):
             if self.can_build_bridge():
                 bridge_path = find_shortest_path(self.pos, building_end, self.map.island_map,
                                                  is_obstacles_reversed=True)
-                print('[build_bridge_graph_based]: Bridge length: {}'.format(len(bridge_path)))
+                # print('[build_bridge_graph_based]: Bridge length: {}'.format(len(bridge_path)))
 
                 if len(bridge_path) > self.max_bridge_length or len(bridge_path) == 0:
-                    print('[build_bridge_graph_based]: Bridge was not built because of MAX_BRIDGE_LENGTH')
+                    # print('[build_bridge_graph_based]: Bridge was not built because of MAX_BRIDGE_LENGTH')
                     continue
 
                 self.map.build_bridge(bridge_path)
@@ -84,11 +84,11 @@ class RobotBuilderController(RobotController):
         self.planned_bridges = []
 
     def build_bridge_to_point_modified(self, point):
-        print('[build_bridge_to_point_modified]: Build bridge to point: {}'.format(point))
+        # print('[build_bridge_to_point_modified]: Build bridge to point: {}'.format(point))
 
         is_exists_path_to_point = len(self.find_path(point)) > 0
 
-        print('[build_bridge_to_point_modified]: is_exists_path_to_point: {}'.format(is_exists_path_to_point))
+        # print('[build_bridge_to_point_modified]: is_exists_path_to_point: {}'.format(is_exists_path_to_point))
 
         if is_exists_path_to_point:
             return
@@ -190,16 +190,20 @@ class RobotBuilderController(RobotController):
 
                 self.map.build_bridge(bridge_path)
 
-                print('[build_bridge_modified]: Bridge was built!!')
+                # print('[build_bridge_modified]: Bridge was built!!')
 
                 self.buildable_coords.remove(nearest_point)
                 self.buildable_coords.remove(self.pos)
 
                 if self.performance_control:
                     # self.performance_control.add_steps(len(bridge_path))
-                    building_operation_cost = BRIDGE_BUILDING_COST * len(bridge_path)
+                    bridge_length = len(bridge_path)
+                    building_operation_cost = BRIDGE_BUILDING_COST * bridge_length
+
                     self.performance_control.add_steps(building_operation_cost)
                     self.performance_control.increase_operation_cost_sum(building_operation_cost, self.robot_type)
+                    self.performance_control.increase_bridge_total_length(bridge_length)
+                    self.performance_control.increase_bridge_num()
 
             return True
 
@@ -337,9 +341,14 @@ class RobotBuilderController(RobotController):
                 self.buildable_coords.remove(self.pos)
 
                 if self.performance_control:
-                    building_operation_cost = BRIDGE_BUILDING_COST * len(bridge_path)
+                    bridge_length = len(bridge_path)
+                    building_operation_cost = BRIDGE_BUILDING_COST * bridge_length
+
                     self.performance_control.add_steps(building_operation_cost)
                     self.performance_control.increase_operation_cost_sum(building_operation_cost, self.robot_type)
+
+                    self.performance_control.increase_bridge_total_length(bridge_length)
+                    self.performance_control.increase_bridge_num()
 
             return True
 

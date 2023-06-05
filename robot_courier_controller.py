@@ -72,12 +72,12 @@ class RobotCourierController(RobotController):
         return res_reachable, res_unreachable
 
     def find_nearest_robot_builder_by_reachability(self, robots_builder):
-        print('[find_nearest_robot_builder_by_reachability] robots_builder:', robots_builder)
+        # print('[find_nearest_robot_builder_by_reachability] robots_builder:', robots_builder)
 
         builders_reachable, builders_unreachable, = self.divide_robots_by_reachability(robots_builder)
 
-        print('[find_nearest_robot_builder_by_reachability] builders_reachable:', builders_reachable)
-        print('[find_nearest_robot_builder_by_reachability] builders_unreachable:', builders_unreachable)
+        # print('[find_nearest_robot_builder_by_reachability] builders_reachable:', builders_reachable)
+        # print('[find_nearest_robot_builder_by_reachability] builders_unreachable:', builders_unreachable)
 
         nearest_builder_reachable = self.find_nearest_robot_builder(builders_reachable)
 
@@ -115,10 +115,10 @@ class RobotCourierController(RobotController):
         if not self.destination_point:
             self.set_destination_point()
 
-        print('Destination point:{}'.format(self.destination_point))
+        # print('Destination point:{}'.format(self.destination_point))
 
         path = self.find_path(self.destination_point)
-        print('Path to the Destination point:{}'.format(path))
+        # print('Path to the Destination point:{}'.format(path))
 
         if path:
             self.follow_path(path)
