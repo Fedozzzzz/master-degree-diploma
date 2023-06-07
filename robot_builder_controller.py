@@ -79,6 +79,14 @@ class RobotBuilderController(RobotController):
                     # print('[build_bridge_graph_based]: Bridge was not built because of MAX_BRIDGE_LENGTH')
                     continue
 
+                bridge_length = len(bridge_path)
+                building_operation_cost = BRIDGE_BUILDING_COST * bridge_length
+
+                self.performance_control.add_steps(building_operation_cost)
+                self.performance_control.increase_operation_cost_sum(building_operation_cost, self.robot_type)
+                self.performance_control.increase_bridge_total_length(bridge_length)
+                self.performance_control.increase_bridge_num()
+
                 self.map.build_bridge(bridge_path)
 
         self.planned_bridges = []

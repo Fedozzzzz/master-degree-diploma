@@ -10,6 +10,7 @@ from performance_control import PerformanceControl
 from robot_builder_controller import RobotBuilderController
 from robot_courier_controller import RobotCourierController
 from task_planner import TaskPlanner
+import time
 
 # Размеры карты
 width = 64
@@ -54,35 +55,35 @@ for y in range(height):
             buildable_coords.append((x, y))
 
 # np.savetxt('array.txt', island_map, delimiter=',')
-# robot_builder_coords = [(23, 41), (33, 18)]
-robot_builder_coords = [(3, 9)]
+robot_builder_coords = [(23, 41), (33, 18)]
+# robot_builder_coords = [(3, 9)]
 # robot_builder_coords = [(23, 41)]
 
-# robot_courier_coords = [(59, 43), (3, 9)]
+robot_courier_coords = [(59, 43), (3, 9)]
 # robot_courier_coords = [(33, 18)]
-robot_courier_coords = [(59, 43)]
+# robot_courier_coords = [(59, 43)]
 
 destination_coord = [(14, 21), (40, 21)]
 start_coords = [(1, 1), (17, 0)]
 
 # island_map = IslandMap(heightmap, delivery_coords)
 
-# delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21)), ((20, 32), (51, 39)), ((30, 58), (3, 33))]
+delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21)), ((20, 32), (51, 39)), ((30, 58), (3, 33))]
 # delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21)), ((20, 32), (51, 39))]
 # delivery_coords = [((1, 1), (14, 21)), ((17, 0), (40, 21))]
 # delivery_coords = [((17, 0), (40, 21))]
 # delivery_coords = [((1, 1), (14, 21))]
 
 # delivery_coords = [((44, 29), (46, 25)), ((34, 2), (42, 21)), ((37, 24), (12, 46)), ((0, 18), (61, 19)), ((62, 45), (11, 1)), ((30, 42), (26, 41)), ((20, 30), (9, 28))]
-# robots_builder_coords = [(37, 59), (31, 25)]
-# robots_courier_coords= [(40, 31), (16, 22)]
+# robots_builder_coords = [(37, 59), (31, 25), (3, 9)]
+# robots_courier_coords= [(40, 31), (16, 22), (59, 43)]
 
-delivery_coords =  [((19, 17), (12, 15)), ((25, 47), (51, 0)), ((16, 50), (23, 42)), ((26, 0), (41, 34))]
-robot_builder_coords = [(33, 27), (63, 12)]
-robot_courier_coords = [(15, 48), (29, 40)]
+# delivery_coords = [((19, 17), (12, 15)), ((25, 47), (51, 0)), ((16, 50), (23, 42)), ((26, 0), (41, 34))]
+# robot_builder_coords = [(33, 27), (63, 12)]
+# robot_courier_coords = [(15, 48), (29, 40)]
 
 
-island_map = IslandMap(island_map, delivery_coords, with_buildable_plan=True)
+island_map = IslandMap(island_map, delivery_coords.copy(), with_buildable_plan=True)
 # island_map = IslandMap(island_map, delivery_coords)
 # islands_coords = island_map.get_islands_coords()
 
@@ -94,12 +95,13 @@ max_bridge_length = 18
 print("buildable_coords len: {}".format(len(buildable_coords)))
 
 performance_control = PerformanceControl()
+start_time = time.time()
 
-robots_builder = [RobotBuilderController(island_map, (width, height), start_pos=rbc, buildable_coords=buildable_coords,
+robots_builder = [RobotBuilderController(island_map, (width, height), start_pos=rbc, buildable_coords=buildable_coords.copy(),
                                          max_bridge_length=max_bridge_length, performance_control=performance_control)
                   for rbc in robot_builder_coords]
 
-robots_courier = [RobotCourierController(island_map, (width, height), start_pos=rcc, delivery_coords=delivery_coords,
+robots_courier = [RobotCourierController(island_map, (width, height), start_pos=rcc, delivery_coords=delivery_coords.copy(),
                                          performance_control=performance_control)
                   for rcc in robot_courier_coords]
 
@@ -117,11 +119,30 @@ for r in robots_courier:
     r.set_map_gui(map_gui)
 
 task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui, building_algorithm=GRAPH_BASED_ALG)
-# task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui)
-# task_planner.plan_and_execute_tasks()
-
-steps_amount = performance_control.get_steps_count()
-
-print("final steps_amount: {}".format(steps_amount))
 
 map_gui.draw()
+
+# task_planner = TaskPlanner(island_map, robots_courier, robots_builder, gui=map_gui)
+task_planner.plan_and_execute_tasks()
+
+end_time = time.time()
+
+execution_time = end_time - start_time
+
+steps_amount = performance_control.get_steps_count()
+courier_robot_operations_cost_sum = performance_control.courier_robot_operations_cost_sum / len(robots_courier)
+builder_robot_operations_cost_sum = performance_control.builder_robot_operations_cost_sum / len(robots_builder)
+bridge_num = performance_control.bridge_num
+bridge_total_length = performance_control.bridge_total_length
+
+print("final steps_amount: {}".format(steps_amount))
+print("courier_robot_operations_cost_sum: {}".format(courier_robot_operations_cost_sum))
+print("builder_robot_operations_cost_sum: {}".format(builder_robot_operations_cost_sum))
+print("bridge_num: {}".format(bridge_num))
+print("bridge_total_length: {}".format(bridge_total_length))
+print("execution_time: {}".format(execution_time))
+
+print("num of delivery coords: {}".format(len(delivery_coords)))
+print("num of buildable coords: {}".format(len(buildable_coords)))
+
+

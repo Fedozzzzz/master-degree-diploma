@@ -1,6 +1,7 @@
 import networkx as nx
 from matplotlib import pyplot as plt
 import json
+import time
 
 from constants import MAX_BRIDGE_LENGTH
 from utils import find_shortest_path
@@ -22,8 +23,14 @@ class IslandMap:
             'water': 0.0,
         }
         if with_buildable_plan:
+            start_time = time.time()
             self.islands = IslandMap.divide_into_islands(self.island_map)
             self.buildable_plan = IslandMap.create_buildable_plan(self.islands, self.island_map, max_bridge_length)
+            end_time = time.time()
+            execution_time = end_time - start_time
+            print("building static plan execution_time: {}".format(execution_time))
+
+
 
     def is_obstacle(self, x, y):
         return self.island_map[y][x] == 1

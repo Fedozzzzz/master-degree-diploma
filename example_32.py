@@ -11,6 +11,8 @@ from robot_builder_controller import RobotBuilderController
 from robot_courier_controller import RobotCourierController
 from task_planner import TaskPlanner
 from utils import find_shortest_path, find_nearest_point, get_buildable_coords, show_map
+import time
+
 
 island_map = [
     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -65,6 +67,8 @@ island_map = IslandMap(island_map, delivery_coords, with_buildable_plan=True)
 
 performance_control = PerformanceControl()
 
+start_time = time.time()
+
 robot_builder = RobotBuilderController(island_map, (width, height), robot_builder_coord, buildable_coords, performance_control=performance_control)
 
 robot_courier = RobotCourierController(island_map, (width, height), robot_courier_coord, delivery_coords, performance_control=performance_control)
@@ -77,11 +81,24 @@ task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder], gui=map
 # task_planner = TaskPlanner(island_map, [robot_courier], [robot_builder], gui=map_gui)
 
 task_planner.plan_and_execute_tasks()
+end_time = time.time()
+
 map_gui.draw()
 
+execution_time = end_time - start_time
+
 steps_amount = performance_control.get_steps_count()
+courier_robot_operations_cost_sum = performance_control.courier_robot_operations_cost_sum
+builder_robot_operations_cost_sum = performance_control.builder_robot_operations_cost_sum
+bridge_num = performance_control.bridge_num
+bridge_total_length = performance_control.bridge_total_length
 
 print("final steps_amount: {}".format(steps_amount))
+print("courier_robot_operations_cost_sum: {}".format(courier_robot_operations_cost_sum))
+print("builder_robot_operations_cost_sum: {}".format(builder_robot_operations_cost_sum))
+print("bridge_num: {}".format(bridge_num))
+print("bridge_total_length: {}".format(bridge_total_length))
+print("execution_time: {}".format(execution_time))
 
 
 # show_map(island_map.island_map, robot_builder=robot_builder.pos, robot_courier=robot_courier.pos)

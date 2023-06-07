@@ -194,14 +194,26 @@ def get_performance(island_map_coords, current_buildable_coords, current_deliver
 
     steps_amount = performance_control.get_steps_count()
 
+    bridge_num = performance_control.bridge_num
+    bridge_total_length = performance_control.bridge_total_length
+
     robots_courier_operations_cost = performance_control.courier_robot_operations_cost_sum / len(robots_courier_points)
     robots_builder_operations_cost = performance_control.builder_robot_operations_cost_sum / len(robots_builder_points)
 
     end_time = time.time()
 
     execution_time = end_time - start_time
-    return steps_amount, robots_courier_operations_cost, robots_builder_operations_cost, execution_time
 
+    metrics_result = {
+        "total_operations_cost": steps_amount,
+        "robots_courier_operations_cost": robots_courier_operations_cost,
+        "robots_builder_operations_cost": robots_builder_operations_cost,
+        "execution_time": execution_time,
+        "num_of_bridges": bridge_num,
+        "bridge_total_length": bridge_total_length,
+    }
+
+    return metrics_result
 
 def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, delivery_points_initial=None,
                       num_of_delivery_points=10):
@@ -234,6 +246,12 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
     time_total_greedy = []
     time_total_graph = []
 
+    num_of_bridges_result_greedy = []
+    num_of_bridges_result_graph = []
+
+    bridge_total_len_result_greedy = []
+    bridge_total_len_result_graph = []
+
     for current_num_of_pairs in range(1, num_of_pairs + 1):
         current_delivery_points = delivery_points.copy()
         current_buildable_coords = buildable_coords.copy()
@@ -246,16 +264,31 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
         print('curr_robots_builder_points: {}'.format(curr_robots_builder_points))
         print('curr_robots_courier_points: {}'.format(curr_robots_courier_points))
 
-        performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy, execution_time_greedy = get_performance(
+        metrics_result_greedy = get_performance(
             island_map_coords, current_buildable_coords.copy(),
             current_delivery_points.copy(),
             curr_robots_builder_points.copy(), curr_robots_courier_points.copy())
 
-        performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph, execution_time_graph = get_performance(
+        performance_greedy = metrics_result_greedy["total_operations_cost"]
+        couriers_operations_cost_greedy = metrics_result_greedy["robots_courier_operations_cost"]
+        builders_operations_cost_greedy = metrics_result_greedy["robots_builder_operations_cost"]
+        execution_time_greedy = metrics_result_greedy["execution_time"]
+        num_of_bridges_greedy = metrics_result_greedy["num_of_bridges"]
+        bridge_total_length_greedy = metrics_result_greedy["bridge_total_length"]
+
+        metrics_result_graph = get_performance(
             island_map_coords, current_buildable_coords.copy(),
             current_delivery_points.copy(),
             curr_robots_builder_points.copy(), curr_robots_courier_points.copy(),
             with_buildable_plan=True)
+
+
+        performance_graph = metrics_result_graph["total_operations_cost"]
+        couriers_operations_cost_graph = metrics_result_graph["robots_courier_operations_cost"]
+        builders_operations_cost_graph = metrics_result_graph["robots_builder_operations_cost"]
+        execution_time_graph = metrics_result_graph["execution_time"]
+        num_of_bridges_graph = metrics_result_graph["num_of_bridges"]
+        bridge_total_length_graph = metrics_result_graph["bridge_total_length"]
 
         test_results_couriers_greedy.append(couriers_operations_cost_greedy)
         test_results_builders_greedy.append(builders_operations_cost_greedy)
@@ -268,6 +301,12 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
 
         time_total_greedy.append(execution_time_greedy)
         time_total_graph.append(execution_time_graph)
+
+        num_of_bridges_result_greedy.append(num_of_bridges_greedy)
+        num_of_bridges_result_graph.append(num_of_bridges_graph)
+
+        bridge_total_len_result_greedy.append(bridge_total_length_greedy)
+        bridge_total_len_result_graph.append(bridge_total_length_graph)
 
         num_of_pairs_arr.append(current_num_of_pairs)
 
@@ -299,7 +338,7 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
     ylabel = 'Средяя стоимость операций'
     # plot_result(num_of_pairs_arr, test_results_builders_greedy, test_results_builders_graph, title, xlabel, ylabel)
 
-    robots_results = {
+    metrics_results = {
         "greedy": {
             "courier": test_results_couriers_greedy,
             "builder": test_results_builders_greedy,
@@ -311,6 +350,14 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
         "time": {
             "time_total_greedy": time_total_greedy,
             "time_total_graph": time_total_graph,
+        },
+        "bridge_len": {
+            "bridge_total_len_result_greedy": bridge_total_len_result_greedy,
+            "bridge_total_len_result_graph": bridge_total_len_result_graph,
+        },
+        "num_of_bridges": {
+            "num_of_bridges_result_greedy": num_of_bridges_result_greedy,
+            "num_of_bridges_result_graph": num_of_bridges_result_graph,
         }
     }
 
@@ -323,7 +370,7 @@ def test_num_of_pairs(island_map_coords, buildable_coords, num_of_pairs, deliver
     # with open("num_of_pairs_array.json", "w") as file:
     #     json.dump(num_of_pairs_arr, file)
 
-    return test_results_greedy, test_results_graph, num_of_pairs_arr, robots_results
+    return test_results_greedy, test_results_graph, num_of_pairs_arr, metrics_results
 
 
 def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_builder_points_initial=None,
@@ -366,6 +413,12 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
     time_total_greedy = []
     time_total_graph = []
 
+    num_of_bridges_result_greedy = []
+    num_of_bridges_result_graph = []
+
+    bridge_total_len_result_greedy = []
+    bridge_total_len_result_graph = []
+
     for i in range(1, len(delivery_points) + 1):
         current_delivery_points = delivery_points[:i]
         current_buildable_coords = buildable_coords.copy()
@@ -375,15 +428,29 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
 
         print(robots_courier_points)
 
-        performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy, execution_time_greedy = get_performance(
+        metrics_result_greedy = get_performance(
             island_map_coords, current_buildable_coords.copy(),
             current_delivery_points.copy(),
             robots_builder_points, robots_courier_points)
 
-        performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph, execution_time_graph = get_performance(
+        performance_greedy = metrics_result_greedy["total_operations_cost"]
+        couriers_operations_cost_greedy = metrics_result_greedy["robots_courier_operations_cost"]
+        builders_operations_cost_greedy = metrics_result_greedy["robots_builder_operations_cost"]
+        execution_time_greedy = metrics_result_greedy["execution_time"]
+        num_of_bridges_greedy = metrics_result_greedy["num_of_bridges"]
+        bridge_total_length_greedy = metrics_result_greedy["bridge_total_length"]
+
+        metrics_result_graph = get_performance(
             island_map_coords, current_buildable_coords.copy(),
             current_delivery_points.copy(),
             robots_builder_points, robots_courier_points, with_buildable_plan=True)
+
+        performance_graph = metrics_result_graph["total_operations_cost"]
+        couriers_operations_cost_graph = metrics_result_graph["robots_courier_operations_cost"]
+        builders_operations_cost_graph = metrics_result_graph["robots_builder_operations_cost"]
+        execution_time_graph = metrics_result_graph["execution_time"]
+        num_of_bridges_graph = metrics_result_graph["num_of_bridges"]
+        bridge_total_length_graph = metrics_result_graph["bridge_total_length"]
 
         test_results_couriers_greedy.append(couriers_operations_cost_greedy)
         test_results_builders_greedy.append(builders_operations_cost_greedy)
@@ -396,6 +463,12 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
 
         time_total_greedy.append(execution_time_greedy)
         time_total_graph.append(execution_time_graph)
+
+        num_of_bridges_result_greedy.append(num_of_bridges_greedy)
+        num_of_bridges_result_graph.append(num_of_bridges_graph)
+
+        bridge_total_len_result_greedy.append(bridge_total_length_greedy)
+        bridge_total_len_result_graph.append(bridge_total_length_graph)
 
         delivery_points_nums.append(len(current_delivery_points))
         print("final performance greedy: {}".format(performance_greedy))
@@ -426,7 +499,7 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
     ylabel = 'Средяя стоимость операций'
     # plot_result(delivery_points_nums, test_results_builders_greedy, test_results_builders_graph, title, xlabel, ylabel)
 
-    robots_results = {
+    metrics_results = {
         "greedy": {
             "courier": test_results_couriers_greedy,
             "builder": test_results_builders_greedy,
@@ -438,6 +511,14 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
         "time": {
             "time_total_greedy": time_total_greedy,
             "time_total_graph": time_total_graph,
+        },
+        "bridge_len": {
+            "bridge_total_len_result_greedy": bridge_total_len_result_greedy,
+            "bridge_total_len_result_graph": bridge_total_len_result_graph,
+        },
+        "num_of_bridges": {
+            "num_of_bridges_result_greedy": num_of_bridges_result_greedy,
+            "num_of_bridges_result_graph": num_of_bridges_result_graph,
         }
     }
 
@@ -450,7 +531,7 @@ def test_num_of_delivery_points(island_map_coords, buildable_coords, robots_buil
     # with open("delivery_points_nums_array.json", "w") as file:
     #     json.dump(delivery_points_nums, file)
 
-    return test_results_greedy, test_results_graph, delivery_points_nums, robots_results
+    return test_results_greedy, test_results_graph, delivery_points_nums, metrics_results
 
 
 def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of_delivery_points, num_of_iterations=1):
@@ -471,6 +552,12 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
     result_time_greedy = []
     result_time_graph = []
 
+    result_bridge_len_greedy = []
+    result_bridge_len_graph = []
+
+    result_num_bridges_greedy = []
+    result_num_bridges_graph = []
+
     num_of_iterations_max = num_of_iterations + 15
 
     success_count = 0
@@ -478,14 +565,13 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
     while success_count < num_of_iterations:
         print('//////////////////////////////////////////////////////////////////////////////')
         print('NUM OF ITERATION: {}'.format(i))
-        # test_results_greedy, test_results_graph, num_of_pairs_arr = test_num_of_pairs(island_map, buildable_coords, num_of_pairs, num_of_delivery_points)
 
         if i >= num_of_iterations_max:
             break
 
         i += 1
         try:
-            test_results_greedy, test_results_graph, num_of_pairs_arr, robots_results = test_num_of_pairs(
+            test_results_greedy, test_results_graph, num_of_pairs_arr, metrics_results = test_num_of_pairs(
                 island_map,
                 buildable_coords,
                 num_of_pairs,
@@ -495,14 +581,20 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
             result_test_greedy.append(test_results_greedy)
             result_test_graph.append(test_results_graph)
 
-            result_test_courier_greedy.append(robots_results["greedy"]["courier"])
-            result_test_builder_greedy.append(robots_results["greedy"]["builder"])
+            result_test_courier_greedy.append(metrics_results["greedy"]["courier"])
+            result_test_builder_greedy.append(metrics_results["greedy"]["builder"])
 
-            result_test_courier_graph.append(robots_results["graph"]["courier"])
-            result_test_builder_graph.append(robots_results["graph"]["builder"])
+            result_test_courier_graph.append(metrics_results["graph"]["courier"])
+            result_test_builder_graph.append(metrics_results["graph"]["builder"])
 
-            result_time_greedy.append(robots_results["time"]["time_total_greedy"])
-            result_time_graph.append(robots_results["time"]["time_total_graph"])
+            result_time_greedy.append(metrics_results["time"]["time_total_greedy"])
+            result_time_graph.append(metrics_results["time"]["time_total_graph"])
+
+            result_bridge_len_greedy.append(metrics_results["bridge_len"]["bridge_total_len_result_greedy"])
+            result_bridge_len_graph.append(metrics_results["bridge_len"]["bridge_total_len_result_graph"])
+
+            result_num_bridges_greedy.append(metrics_results["num_of_bridges"]["num_of_bridges_result_greedy"])
+            result_num_bridges_graph.append(metrics_results["num_of_bridges"]["num_of_bridges_result_graph"])
 
             num_of_pairs_arr_result = num_of_pairs_arr.copy()
             success_count += 1
@@ -678,6 +770,10 @@ def test_num_of_pairs_n_times(island_map, buildable_coords, num_of_pairs, num_of
         "anova_results": anova_results,
         "result_time_greedy": result_time_greedy,
         "result_time_graph": result_time_graph,
+        "result_bridge_len_greedy": result_bridge_len_greedy,
+        "result_bridge_len_graph": result_bridge_len_graph,
+        "result_num_bridges_greedy": result_num_bridges_greedy,
+        "result_num_bridges_graph": result_num_bridges_graph,
     }
 
     return test_num_of_pairs_result
@@ -703,6 +799,12 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
     result_time_greedy = []
     result_time_graph = []
 
+    result_bridge_len_greedy = []
+    result_bridge_len_graph = []
+
+    result_num_bridges_greedy = []
+    result_num_bridges_graph = []
+
     num_of_iterations_max = num_of_iterations + 20
 
     success_count = 0
@@ -716,7 +818,7 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
 
         i += 1
         try:
-            test_results_greedy, test_results_graph, delivery_points_nums, robots_results = test_num_of_delivery_points(
+            test_results_greedy, test_results_graph, delivery_points_nums, metrics_results = test_num_of_delivery_points(
                 island_map,
                 buildable_coords,
                 num_of_delivery_points=num_of_delivery_points,
@@ -727,14 +829,20 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
             result_test_greedy.append(test_results_greedy)
             result_test_graph.append(test_results_graph)
 
-            result_test_courier_greedy.append(robots_results["greedy"]["courier"])
-            result_test_builder_greedy.append(robots_results["greedy"]["builder"])
+            result_test_courier_greedy.append(metrics_results["greedy"]["courier"])
+            result_test_builder_greedy.append(metrics_results["greedy"]["builder"])
 
-            result_test_courier_graph.append(robots_results["graph"]["courier"])
-            result_test_builder_graph.append(robots_results["graph"]["builder"])
+            result_test_courier_graph.append(metrics_results["graph"]["courier"])
+            result_test_builder_graph.append(metrics_results["graph"]["builder"])
 
-            result_time_greedy.append(robots_results["time"]["time_total_greedy"])
-            result_time_graph.append(robots_results["time"]["time_total_graph"])
+            result_time_greedy.append(metrics_results["time"]["time_total_greedy"])
+            result_time_graph.append(metrics_results["time"]["time_total_graph"])
+
+            result_bridge_len_greedy.append(metrics_results["bridge_len"]["bridge_total_len_result_greedy"])
+            result_bridge_len_graph.append(metrics_results["bridge_len"]["bridge_total_len_result_graph"])
+
+            result_num_bridges_greedy.append(metrics_results["num_of_bridges"]["num_of_bridges_result_greedy"])
+            result_num_bridges_graph.append(metrics_results["num_of_bridges"]["num_of_bridges_result_graph"])
 
             delivery_points_nums_result = delivery_points_nums.copy()
             success_count += 1
@@ -973,6 +1081,10 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
         "anova_results": anova_results,
         "result_time_greedy": result_time_greedy,
         "result_time_graph": result_time_graph,
+        "result_bridge_len_greedy": result_bridge_len_greedy,
+        "result_bridge_len_graph": result_bridge_len_graph,
+        "result_num_bridges_greedy": result_num_bridges_greedy,
+        "result_num_bridges_graph": result_num_bridges_graph,
     }
 
     return test_num_of_delivery_points_result
@@ -981,7 +1093,7 @@ def test_num_of_delivery_points_n_times(island_map, buildable_coords, num_of_pai
     #     json.dump(test_num_of_delivery_points_result, file)
 
 
-def plot_3d_surface_result(x, y, z, title=None, xlabel=None, ylabel=None, zlabel=None):
+def plot_3d_surface_result(x, y, z, title=None, xlabel=None, ylabel=None, zlabel=None, zlimits=None):
     fig = plt.figure()
     # ax1 = fig.add_subplot(1, 2, 1, projection='3d')
     ax1 = fig.add_subplot(1, 1, 1, projection='3d')
@@ -1005,6 +1117,10 @@ def plot_3d_surface_result(x, y, z, title=None, xlabel=None, ylabel=None, zlabel
     ax1.set_zlabel(zlabel)
 
     ax1.scatter(X, Y, z, color='red')
+
+    if zlimits is not None:
+        left, right = zlimits
+        ax1.set_zlim(left, right)
 
     # Добавление заголовка
     ax1.set_title(title)
@@ -1039,6 +1155,12 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
     result_time_greedy = []
     result_time_graph = []
 
+    result_bridge_len_greedy = []
+    result_bridge_len_graph = []
+
+    result_num_bridges_greedy = []
+    result_num_bridges_graph = []
+
     for curr_num_delivery_points in range(1, num_of_delivery_points + 1):
 
         curr_result_performance_greedy = []
@@ -1053,6 +1175,12 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
         curr_result_time_greedy = []
         curr_result_time_graph = []
 
+        curr_result_bridge_len_greedy = []
+        curr_result_bridge_len_graph = []
+
+        curr_result_num_bridges_greedy = []
+        curr_result_num_bridges_graph = []
+
         for curr_num_pairs in range(1, num_of_pairs + 1):
             current_delivery_points = delivery_points[:curr_num_delivery_points]
             current_buildable_coords = buildable_coords.copy()
@@ -1064,16 +1192,30 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
             print('CURRENT NUM OF DELIVERY POINTS: {}'.format(curr_num_delivery_points))
             print('CURRENT NUM OF PAIRS: {}'.format(curr_num_pairs))
 
-            performance_greedy, couriers_operations_cost_greedy, builders_operations_cost_greedy, execution_time_greedy = get_performance(
+            metrics_result_greedy = get_performance(
                 island_map, current_buildable_coords.copy(),
                 current_delivery_points.copy(),
                 robots_builder_points=curr_robots_builder_points, robots_courier_points=curr_robots_courier_points)
 
-            performance_graph, couriers_operations_cost_graph, builders_operations_cost_graph, execution_time_graph = get_performance(
+            performance_greedy = metrics_result_greedy["total_operations_cost"]
+            couriers_operations_cost_greedy = metrics_result_greedy["robots_courier_operations_cost"]
+            builders_operations_cost_greedy = metrics_result_greedy["robots_builder_operations_cost"]
+            execution_time_greedy = metrics_result_greedy["execution_time"]
+            num_of_bridges_greedy = metrics_result_greedy["num_of_bridges"]
+            bridge_total_length_greedy = metrics_result_greedy["bridge_total_length"]
+
+            metrics_result_graph = get_performance(
                 island_map, current_buildable_coords.copy(),
                 current_delivery_points.copy(),
                 robots_builder_points=curr_robots_builder_points,
                 robots_courier_points=curr_robots_courier_points, with_buildable_plan=True)
+
+            performance_graph = metrics_result_graph["total_operations_cost"]
+            couriers_operations_cost_graph = metrics_result_graph["robots_courier_operations_cost"]
+            builders_operations_cost_graph = metrics_result_graph["robots_builder_operations_cost"]
+            execution_time_graph = metrics_result_graph["execution_time"]
+            num_of_bridges_graph = metrics_result_graph["num_of_bridges"]
+            bridge_total_length_graph = metrics_result_graph["bridge_total_length"]
 
             curr_result_performance_greedy.append(performance_greedy)
             curr_result_performance_graph.append(performance_graph)
@@ -1086,6 +1228,12 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
 
             curr_result_time_greedy.append(execution_time_greedy)
             curr_result_time_graph.append(execution_time_graph)
+
+            curr_result_bridge_len_greedy.append(bridge_total_length_greedy)
+            curr_result_bridge_len_graph.append(bridge_total_length_graph)
+
+            curr_result_num_bridges_greedy.append(num_of_bridges_greedy)
+            curr_result_num_bridges_graph.append(num_of_bridges_graph)
 
             if curr_num_delivery_points == 1:
                 result_num_of_pairs.append(curr_num_pairs)
@@ -1101,6 +1249,12 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
 
         result_time_greedy.append(curr_result_time_greedy)
         result_time_graph.append(curr_result_time_graph)
+
+        result_bridge_len_greedy.append(curr_result_bridge_len_greedy)
+        result_bridge_len_graph.append(curr_result_bridge_len_graph)
+
+        result_num_bridges_greedy.append(curr_result_num_bridges_greedy)
+        result_num_bridges_graph.append(curr_result_num_bridges_graph)
 
         result_num_of_delivery_points.append(curr_num_delivery_points)
 
@@ -1191,6 +1345,10 @@ def test_pairs_delivery_points(island_map, buildable_coords, num_of_pairs, num_o
         "result_test_builder_graph": result_test_builder_graph,
         "result_time_greedy": result_time_greedy,
         "result_time_graph": result_time_graph,
+        "result_bridge_len_greedy": result_bridge_len_greedy,
+        "result_bridge_len_graph": result_bridge_len_graph,
+        "result_num_bridges_greedy": result_num_bridges_greedy,
+        "result_num_bridges_graph": result_num_bridges_graph,
     }
 
     return results
@@ -1265,40 +1423,40 @@ def run_experiments():
     #     #     "num_of_pairs": 10,
     #     #     "num_of_delivery_points": 10,
     #     # }),
-    #     "test_pairs_delivery_points": (test_pairs_delivery_points, {
-    #         "island_map": island_map,
-    #         "buildable_coords": buildable_coords,
-    #         "num_of_pairs": 5,
-    #         "num_of_delivery_points": 5,
-    #     }),
+    #     # "test_pairs_delivery_points": (test_pairs_delivery_points, {
+    #     #     "island_map": island_map,
+    #     #     "buildable_coords": buildable_coords,
+    #     #     "num_of_pairs": 10,
+    #     #     "num_of_delivery_points": 10,
+    #     # }),
     #     "test_num_of_pairs": (test_num_of_pairs_n_times, {
     #         "island_map": island_map,
     #         "buildable_coords": buildable_coords,
-    #         "num_of_pairs": 2,
-    #         "num_of_delivery_points": 2,
+    #         "num_of_pairs": 20,
+    #         "num_of_delivery_points": 10,
     #         "num_of_iterations": 1,
     #     }),
     #     "test_num_of_delivery_points": (test_num_of_delivery_points_n_times, {
     #         "island_map": island_map,
     #         "buildable_coords": buildable_coords,
-    #         "num_of_delivery_points": 3,
-    #         "num_of_pairs": 2,
+    #         "num_of_delivery_points": 20,
+    #         "num_of_pairs": 10,
     #         "num_of_iterations": 1
     #     }),
-    #     "test_num_of_pairs_n_times": (test_num_of_pairs_n_times, {
-    #         "island_map": island_map,
-    #         "buildable_coords": buildable_coords,
-    #         "num_of_pairs": 2,
-    #         "num_of_delivery_points": 2,
-    #         "num_of_iterations": 3,
-    #     }),
-    #     "test_num_of_delivery_points_n_times": (test_num_of_delivery_points_n_times, {
-    #         "island_map": island_map,
-    #         "buildable_coords": buildable_coords,
-    #         "num_of_delivery_points": 2,
-    #         "num_of_pairs": 2,
-    #         "num_of_iterations": 3,
-    #     }),
+    #     # "test_num_of_pairs_n_times": (test_num_of_pairs_n_times, {
+    #     #     "island_map": island_map,
+    #     #     "buildable_coords": buildable_coords,
+    #     #     "num_of_pairs": 10,
+    #     #     "num_of_delivery_points": 5,
+    #     #     "num_of_iterations": 3,
+    #     # }),
+    #     # "test_num_of_delivery_points_n_times": (test_num_of_delivery_points_n_times, {
+    #     #     "island_map": island_map,
+    #     #     "buildable_coords": buildable_coords,
+    #     #     "num_of_delivery_points": 10,
+    #     #     "num_of_pairs": 5,
+    #     #     "num_of_iterations": 3,
+    #     # }),
     # }
     experiments = {
         # "test_pairs_delivery_points-1": (test_pairs_delivery_points, {
@@ -1313,34 +1471,34 @@ def run_experiments():
             "num_of_pairs": 20,
             "num_of_delivery_points": 20,
         }),
-        "test_num_of_pairs": (test_num_of_pairs_n_times, {
-            "island_map": island_map,
-            "buildable_coords": buildable_coords,
-            "num_of_pairs": 30,
-            "num_of_delivery_points": 20,
-            "num_of_iterations": 1,
-        }),
-        "test_num_of_delivery_points": (test_num_of_delivery_points_n_times, {
-            "island_map": island_map,
-            "buildable_coords": buildable_coords,
-            "num_of_delivery_points": 30,
-            "num_of_pairs": 20,
-            "num_of_iterations": 1
-        }),
-        "test_num_of_pairs_n_times": (test_num_of_pairs_n_times, {
-            "island_map": island_map,
-            "buildable_coords": buildable_coords,
-            "num_of_pairs": 20,
-            "num_of_delivery_points": 10,
-            "num_of_iterations": 20,
-        }),
-        "test_num_of_delivery_points_n_times": (test_num_of_delivery_points_n_times, {
-            "island_map": island_map,
-            "buildable_coords": buildable_coords,
-            "num_of_delivery_points": 20,
-            "num_of_pairs": 10,
-            "num_of_iterations": 20,
-        }),
+        # "test_num_of_pairs": (test_num_of_pairs_n_times, {
+        #     "island_map": island_map,
+        #     "buildable_coords": buildable_coords,
+        #     "num_of_pairs": 30,
+        #     "num_of_delivery_points": 20,
+        #     "num_of_iterations": 1,
+        # }),
+        # "test_num_of_delivery_points": (test_num_of_delivery_points_n_times, {
+        #     "island_map": island_map,
+        #     "buildable_coords": buildable_coords,
+        #     "num_of_delivery_points": 50,
+        #     "num_of_pairs": 10,
+        #     "num_of_iterations": 1
+        # }),
+        # "test_num_of_pairs_n_times": (test_num_of_pairs_n_times, {
+        #     "island_map": island_map,
+        #     "buildable_coords": buildable_coords,
+        #     "num_of_pairs": 20,
+        #     "num_of_delivery_points": 10,
+        #     "num_of_iterations": 20,
+        # }),
+        # "test_num_of_delivery_points_n_times": (test_num_of_delivery_points_n_times, {
+        #     "island_map": island_map,
+        #     "buildable_coords": buildable_coords,
+        #     "num_of_delivery_points": 20,
+        #     "num_of_pairs": 10,
+        #     "num_of_iterations": 20,
+        # }),
     }
 
     for experiment_name, (experiment_func, experiment_args) in experiments.items():
